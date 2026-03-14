@@ -82,7 +82,7 @@ async function fetchOpenLibrary(isbn: string): Promise<BookData | null> {
 
   return {
     title: data.title ?? "",
-    author: author || data.by_statement ?? "",
+    author: (author || data.by_statement) ?? "",
     publishingHouse: data.publishers?.[0] ?? "",
     publishedDate: data.publish_date ?? "",
     pageCount: data.number_of_pages ?? undefined,
