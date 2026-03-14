@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role      @default(USER)
+  schoolId      String?
+
+  accounts Account[]
+  sessions Session[]
+  loans    Loan[]
+  school   School?   @relation(fields: [schoolId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model School {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String?
+  address     String?
+  logoUrl     String?
+  color       String? @default("#007AFF")
+
+  users User[]
+  books Book[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Book {
+  id              String          @id @default(cuid())
+  isbn            String?
+  title           String
+  author          String
+  publishingHouse String?
+  series          String?
+  typePublication PublicationType @default(BOOK)
+  publishedDate   String?
+  pageCount       Int?
+  format          BookFormat      @default(HARDCOVER)
+  coverUrl        String?
+  description     String?         @db.Text
+  language        String?         @default("de")
+  totalCopies     Int             @default(1)
+  schoolId        String
+
+  school School @relation(fields: [schoolId], references: [id])
+  loans  Loan[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isbn])
+  @@index([schoolId])
+}
+
+model Loan {
+  id         String     @id @default(cuid())
+  bookId     String
+  userId     String
+  borrowedAt DateTime   @default(now())
+  dueDate    DateTime
+  returnedAt DateTime?
+  status     LoanStatus @default(ACTIVE)
+  notes      String?
+
+  book      Book       @relation(fields: [bookId], references: [id])
+  user      User       @relation(fields: [userId], references: [id])
+  reminders Reminder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([bookId])
+  @@index([userId])
+}
+
+model Reminder {
+  id          String         @id @default(cuid())
+  loanId      String
+  type        ReminderType
+  sentAt      DateTime?
+  scheduledAt DateTime
+  status      ReminderStatus @default(PENDING)
+
+  loan Loan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  USER
+  LIBRARIAN
+  ADMIN
+}
+
+enum PublicationType {
+  BOOK
+  MAGAZINE
+  NEWSPAPER
+  COMIC
+  AUDIOBOOK
+  EBOOK
+  REFERENCE
+  OTHER
+}
+
+enum BookFormat {
+  HARDCOVER
+  PAPERBACK
+  POCKET
+  LARGE_PRINT
+  OTHER
+}
+
+enum LoanStatus {
+  ACTIVE
+  RETURNED
+  OVERDUE
+  LOST
+}
+
+enum ReminderType {
+  THREE_DAYS_BEFORE
+  ONE_DAY_BEFORE
+  DUE_TODAY
+  ONE_DAY_OVERDUE
+  ONE_WEEK_OVERDUE
+}
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  FAILED
+}
