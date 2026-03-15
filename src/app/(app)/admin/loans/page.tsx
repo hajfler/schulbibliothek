@@ -8,7 +8,7 @@ import { BookOpen, Filter, Mail } from "lucide-react";
 import Link from "next/link";
 
 interface PageProps {
-  searchParams: Promise<{ status?: string; search?: string }>;
+  searchParams: Promise<{ status?: string; search?: string; school?: string }>;
 }
 
 export default async function AdminLoansPage({ searchParams }: PageProps) {
@@ -17,11 +17,20 @@ export default async function AdminLoansPage({ searchParams }: PageProps) {
     redirect("/dashboard");
   }
 
-  const { status, search } = await searchParams;
-  const schoolId = session.user.schoolId;
+  const { status, search, school } = await searchParams;
+  const isAdmin = session.user.role === "ADMIN";
+
+  // Admins see all schools; librarians only their own school
+  const schoolFilter = isAdmin
+    ? (school ? { schoolId: school } : {})
+    : { schoolId: session.user.schoolId ?? undefined };
+
+  const schools = isAdmin
+    ? await prisma.school.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
+    : [];
 
   const where = {
-    ...(schoolId ? { book: { schoolId } } : {}),
+    ...(Object.keys(schoolFilter).length ? { book: schoolFilter } : {}),
     ...(status ? { status: status as "ACTIVE" | "RETURNED" | "OVERDUE" | "LOST" } : {}),
     ...(search
       ? {
@@ -36,14 +45,14 @@ export default async function AdminLoansPage({ searchParams }: PageProps) {
 
   // Update overdue status
   await prisma.loan.updateMany({
-    where: { status: "ACTIVE", dueDate: { lt: new Date() }, book: schoolId ? { schoolId } : {} },
+    where: { status: "ACTIVE", dueDate: { lt: new Date() }, ...(Object.keys(schoolFilter).length ? { book: schoolFilter } : {}) },
     data: { status: "OVERDUE" },
   });
 
   const loans = await prisma.loan.findMany({
     where,
     include: {
-      book: { select: { id: true, title: true, author: true, coverUrl: true } },
+      book: { select: { id: true, title: true, author: true, coverUrl: true, school: { select: { name: true } } } },
       user: { select: { id: true, name: true, email: true } },
     },
     orderBy: [{ status: "asc" }, { dueDate: "asc" }],
@@ -69,21 +78,53 @@ export default async function AdminLoansPage({ searchParams }: PageProps) {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
+        {/* Status filter */}
         <div className="flex gap-1.5 bg-white border border-[#C6C6C8] rounded-xl p-1">
-          {statusFilters.map((f) => (
-            <Link
-              key={f.value}
-              href={`/admin/loans${f.value ? `?status=${f.value}` : ""}`}
-              className={`px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all ${
-                (status ?? "") === f.value
-                  ? "bg-[#007AFF] text-white"
-                  : "text-[#3A3A3C] hover:bg-[#F2F2F7]"
-              }`}
-            >
-              {f.label}
-            </Link>
-          ))}
+          {statusFilters.map((f) => {
+            const params = new URLSearchParams();
+            if (f.value) params.set("status", f.value);
+            if (school) params.set("school", school);
+            if (search) params.set("search", search);
+            return (
+              <Link
+                key={f.value}
+                href={`/admin/loans${params.size ? `?${params}` : ""}`}
+                className={`px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all ${
+                  (status ?? "") === f.value
+                    ? "bg-[#007AFF] text-white"
+                    : "text-[#3A3A3C] hover:bg-[#F2F2F7]"
+                }`}
+              >
+                {f.label}
+              </Link>
+            );
+          })}
         </div>
+
+        {/* School filter (admin only) */}
+        {isAdmin && schools.length > 1 && (
+          <div className="flex gap-1.5 bg-white border border-[#C6C6C8] rounded-xl p-1">
+            {[{ id: "", name: "Alle Schulhäuser" }, ...schools].map((s) => {
+              const params = new URLSearchParams();
+              if (status) params.set("status", status);
+              if (s.id) params.set("school", s.id);
+              if (search) params.set("search", search);
+              return (
+                <Link
+                  key={s.id}
+                  href={`/admin/loans${params.size ? `?${params}` : ""}`}
+                  className={`px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all ${
+                    (school ?? "") === s.id
+                      ? "bg-[#007AFF] text-white"
+                      : "text-[#3A3A3C] hover:bg-[#F2F2F7]"
+                  }`}
+                >
+                  {s.name}
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Table */}
@@ -98,7 +139,7 @@ export default async function AdminLoansPage({ searchParams }: PageProps) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[#F2F2F7]">
-                  {["Buch", "Benutzer", "Ausgeliehen", "Fällig", "Status", "Aktionen"].map((h) => (
+                  {["Buch", ...(isAdmin ? ["Schulhaus"] : []), "Benutzer", "Ausgeliehen", "Fällig", "Status", "Aktionen"].map((h) => (
                     <th
                       key={h}
                       className="text-left px-5 py-3.5 text-[12px] font-semibold text-[#8E8E93] uppercase tracking-wide"
@@ -139,6 +180,11 @@ export default async function AdminLoansPage({ searchParams }: PageProps) {
                           </div>
                         </div>
                       </td>
+                      {isAdmin && (
+                        <td className="px-5 py-4">
+                          <span className="text-[13px] text-[#3A3A3C]">{loan.book.school.name}</span>
+                        </td>
+                      )}
                       <td className="px-5 py-4">
                         <p className="text-[14px] font-medium text-[#1C1C1E]">
                           {loan.user.name ?? loan.user.email}
