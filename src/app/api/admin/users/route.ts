@@ -42,7 +42,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { userId, role, schoolId } = body;
+  const { userId, role, schoolId, schoolIds } = body;
 
   // Librarians can only manage users in their school
   if (session.user.role === "LIBRARIAN") {
@@ -53,19 +53,44 @@ export async function PATCH(req: NextRequest) {
     if (targetUser?.schoolId !== session.user.schoolId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    // Librarians can't promote to ADMIN
     if (role === "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
   }
 
-  const updated = await prisma.user.update({
-    where: { id: userId },
-    data: {
-      ...(role && { role: role as Role }),
-      ...(schoolId !== undefined && { schoolId }),
-    },
-  });
+  // Update role and/or active school
+  if (role || schoolId !== undefined) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(role && { role: role as Role }),
+        ...(schoolId !== undefined && { schoolId: schoolId || null }),
+      },
+    });
+  }
 
+  // Replace school memberships if schoolIds array provided (admin only)
+  if (Array.isArray(schoolIds) && session.user.role === "ADMIN") {
+    await prisma.userSchool.deleteMany({ where: { userId } });
+    if (schoolIds.length > 0) {
+      await prisma.userSchool.createMany({
+        data: schoolIds.map((sid: string) => ({ userId, schoolId: sid })),
+        skipDuplicates: true,
+      });
+    }
+    // If active school is no longer in memberships, reset to first member school
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { schoolId: true } });
+    if (user?.schoolId && !schoolIds.includes(user.schoolId)) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { schoolId: schoolIds[0] ?? null },
+      });
+    }
+  }
+
+  const updated = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { schoolMemberships: { select: { schoolId: true } } },
+  });
   return NextResponse.json(updated);
 }

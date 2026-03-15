@@ -19,6 +19,7 @@ export default async function AdminUsersPage() {
       where: isAdmin ? {} : { schoolId: session.user.schoolId ?? undefined },
       include: {
         school: { select: { id: true, name: true } },
+        schoolMemberships: { select: { schoolId: true } },
         _count: {
           select: {
             loans: { where: { status: { in: ["ACTIVE", "OVERDUE"] } } },
@@ -61,7 +62,7 @@ export default async function AdminUsersPage() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-[#F2F2F7]">
-              {["Benutzer", "Schulhaus", "Rolle", "Ausleihen", "Seit", "Aktionen"].map((h) => (
+              {["Benutzer", "Aktives Schulhaus", "Rolle", "Ausleihen", "Seit", "Aktionen"].map((h) => (
                 <th key={h} className="text-left px-5 py-3.5 text-[12px] font-semibold text-[#8E8E93] uppercase tracking-wide">
                   {h}
                 </th>
@@ -125,6 +126,7 @@ export default async function AdminUsersPage() {
                       userId={user.id}
                       currentRole={user.role}
                       currentSchoolId={user.school?.id ?? null}
+                      memberSchoolIds={user.schoolMemberships.map((m) => m.schoolId)}
                       isAdmin={isAdmin}
                       schools={schools}
                     />

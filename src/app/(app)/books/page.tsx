@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { BookCard } from "@/components/books/book-card";
 import { BooksFilter } from "@/components/books/books-filter";
+import { SchoolSwitcher } from "@/components/books/school-switcher";
 import { BookOpen, Plus } from "lucide-react";
 import Link from "next/link";
 
@@ -21,7 +22,18 @@ export default async function BooksPage({ searchParams }: PageProps) {
   const { search = "", type, available, school } = await searchParams;
   const isStaff = ["LIBRARIAN", "ADMIN"].includes(session.user.role);
 
-  // Admins/Librarians see all schools; regular users only their own school
+  // Fetch user school memberships for the switcher (non-staff only)
+  const userMemberships = !isStaff
+    ? await prisma.userSchool.findMany({
+        where: { userId: session.user.id },
+        include: { school: { select: { id: true, name: true } } },
+        orderBy: { school: { name: "asc" } },
+      })
+    : [];
+
+  const userSchools = userMemberships.map((m) => m.school);
+
+  // Admins/Librarians see all schools; regular users only their active school
   const schoolFilter = isStaff
     ? (school ? { schoolId: school } : {})
     : (session.user.schoolId ? { schoolId: session.user.schoolId } : {});
@@ -94,6 +106,11 @@ export default async function BooksPage({ searchParams }: PageProps) {
           </Link>
         )}
       </div>
+
+      {/* School switcher for users with multiple schools */}
+      {!isStaff && userSchools.length > 1 && (
+        <SchoolSwitcher schools={userSchools} activeSchoolId={session.user.schoolId ?? null} />
+      )}
 
       {/* Filter */}
       <BooksFilter schools={schools} />

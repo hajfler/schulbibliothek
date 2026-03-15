@@ -13,6 +13,7 @@ interface UserRoleSelectorProps {
   userId: string;
   currentRole: string;
   currentSchoolId: string | null;
+  memberSchoolIds: string[];
   isAdmin: boolean;
   schools: School[];
 }
@@ -30,14 +31,16 @@ export function UserRoleSelector({
   userId,
   currentRole,
   currentSchoolId,
+  memberSchoolIds,
   isAdmin,
   schools,
 }: UserRoleSelectorProps) {
   const [loading, setLoading] = React.useState(false);
+  const [selectedSchools, setSelectedSchools] = React.useState<string[]>(memberSchoolIds);
   const { addToast } = useToast();
   const router = useRouter();
 
-  const patch = async (data: { role?: string; schoolId?: string | null }) => {
+  const patch = async (data: { role?: string; schoolId?: string | null; schoolIds?: string[] }) => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/users", {
@@ -58,10 +61,19 @@ export function UserRoleSelector({
     }
   };
 
+  const toggleSchool = (schoolId: string) => {
+    const next = selectedSchools.includes(schoolId)
+      ? selectedSchools.filter((id) => id !== schoolId)
+      : [...selectedSchools, schoolId];
+    setSelectedSchools(next);
+    patch({ schoolIds: next });
+  };
+
   const availableRoles = isAdmin ? roles : roles.filter((r) => r.value !== "ADMIN");
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2.5 min-w-[160px]">
+      {/* Role selector */}
       <select
         value={currentRole}
         onChange={(e) => patch({ role: e.target.value })}
@@ -75,20 +87,37 @@ export function UserRoleSelector({
         ))}
       </select>
 
+      {/* School memberships (admin only) */}
       {isAdmin && schools.length > 0 && (
-        <select
-          value={currentSchoolId ?? ""}
-          onChange={(e) => patch({ schoolId: e.target.value || null })}
-          disabled={loading}
-          className={selectClass}
-        >
-          <option value="">Kein Schulhaus</option>
-          {schools.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
+        <div className="flex flex-col gap-1">
+          <p className="text-[11px] font-semibold text-[#8E8E93] uppercase tracking-wide">
+            Schulhäuser
+          </p>
+          {schools.map((s) => {
+            const isMember = selectedSchools.includes(s.id);
+            const isActive = currentSchoolId === s.id;
+            return (
+              <label
+                key={s.id}
+                className="flex items-center gap-2 cursor-pointer group"
+              >
+                <input
+                  type="checkbox"
+                  checked={isMember}
+                  onChange={() => toggleSchool(s.id)}
+                  disabled={loading}
+                  className="w-3.5 h-3.5 rounded accent-[#007AFF]"
+                />
+                <span className={`text-[12px] font-medium ${isMember ? "text-[#1C1C1E]" : "text-[#C7C7CC]"}`}>
+                  {s.name}
+                  {isActive && (
+                    <span className="ml-1 text-[10px] text-[#007AFF]">(aktiv)</span>
+                  )}
+                </span>
+              </label>
+            );
+          })}
+        </div>
       )}
     </div>
   );

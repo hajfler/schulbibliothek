@@ -49,12 +49,13 @@ model User {
   emailVerified DateTime?
   image         String?
   role          Role      @default(USER)
-  schoolId      String?
+  schoolId      String?   // active/selected school for book filtering
 
-  accounts Account[]
-  sessions Session[]
-  loans    Loan[]
-  school   School?   @relation(fields: [schoolId], references: [id])
+  accounts        Account[]
+  sessions        Session[]
+  loans           Loan[]
+  school          School?      @relation(fields: [schoolId], references: [id])
+  schoolMemberships UserSchool[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -69,11 +70,21 @@ model School {
   logoUrl     String?
   color       String? @default("#007AFF")
 
-  users User[]
-  books Book[]
+  users           User[]
+  books           Book[]
+  userMemberships UserSchool[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model UserSchool {
+  userId   String
+  schoolId String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@id([userId, schoolId])
 }
 
 model Book {

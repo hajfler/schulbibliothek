@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Plus, Edit2, Users } from "lucide-react";
+import { DeleteBookButton } from "@/components/admin/delete-book-button";
+import { BookOpen, Plus, Edit2 } from "lucide-react";
 import Link from "next/link";
 
 export default async function AdminBooksPage() {
@@ -12,11 +13,12 @@ export default async function AdminBooksPage() {
     redirect("/dashboard");
   }
 
-  const schoolId = session.user.schoolId;
+  const isAdmin = session.user.role === "ADMIN";
 
   const books = await prisma.book.findMany({
-    where: schoolId ? { schoolId } : {},
+    where: isAdmin ? {} : { schoolId: session.user.schoolId ?? undefined },
     include: {
+      school: { select: { name: true } },
       _count: {
         select: {
           loans: { where: { status: { in: ["ACTIVE", "OVERDUE"] } } },
@@ -53,7 +55,7 @@ export default async function AdminBooksPage() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-[#F2F2F7]">
-              {["Buch", "Typ", "Exemplare", "Ausgeliehen", "Hinzugefügt", "Aktionen"].map((h) => (
+              {["Buch", ...(isAdmin ? ["Schulhaus"] : []), "Typ", "Exemplare", "Ausgeliehen", "Hinzugefügt", "Aktionen"].map((h) => (
                 <th key={h} className="text-left px-5 py-3.5 text-[12px] font-semibold text-[#8E8E93] uppercase tracking-wide">
                   {h}
                 </th>
@@ -81,6 +83,11 @@ export default async function AdminBooksPage() {
                       </div>
                     </div>
                   </td>
+                  {isAdmin && (
+                    <td className="px-5 py-4">
+                      <span className="text-[13px] text-[#3A3A3C]">{book.school.name}</span>
+                    </td>
+                  )}
                   <td className="px-5 py-4">
                     <Badge variant="gray">{typeLabels[book.typePublication] ?? book.typePublication}</Badge>
                   </td>
@@ -99,7 +106,7 @@ export default async function AdminBooksPage() {
                     <p className="text-[13px] text-[#8E8E93]">{formatDate(book.createdAt)}</p>
                   </td>
                   <td className="px-5 py-4">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       <Link
                         href={`/admin/books/${book.id}/edit`}
                         className="p-2 rounded-lg hover:bg-[#F2F2F7] text-[#8E8E93] hover:text-[#1C1C1E] transition-colors"
@@ -112,6 +119,9 @@ export default async function AdminBooksPage() {
                       >
                         <BookOpen size={15} />
                       </Link>
+                      {isAdmin && (
+                        <DeleteBookButton bookId={book.id} bookTitle={book.title} />
+                      )}
                     </div>
                   </td>
                 </tr>
