@@ -42,6 +42,7 @@ export async function POST(
   }
 
   const senderName = session.user?.name ?? "Bibliothek";
+  const senderEmail = session.user?.email;
 
   const html = `
 <!DOCTYPE html>
@@ -81,6 +82,7 @@ export async function POST(
 
   await transporter.sendMail({
     from: `"Bibliothek" <${process.env.SMTP_FROM ?? process.env.SMTP_USER}>`,
+    replyTo: senderEmail ? `"${senderName}" <${senderEmail}>` : undefined,
     to: loan.user.email,
     subject: `Nachricht zur Ausleihe: "${loan.book.title}"`,
     html,
