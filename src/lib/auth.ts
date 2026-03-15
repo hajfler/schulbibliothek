@@ -45,41 +45,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return session;
     },
-    async signIn({ user }) {
-      if (user.id) {
-        // Check if this user already has any school memberships
-        const membershipCount = await prisma.userSchool.count({
-          where: { userId: user.id },
+  },
+  events: {
+    async createUser({ user }) {
+      // Fires exactly once after the user row is committed to the DB
+      if (!user.id) return;
+
+      const allSchools = await prisma.school.findMany({
+        select: { id: true },
+        orderBy: { name: "asc" },
+      });
+
+      if (allSchools.length > 0) {
+        await prisma.userSchool.createMany({
+          data: allSchools.map((s) => ({ userId: user.id!, schoolId: s.id })),
+          skipDuplicates: true,
         });
-
-        if (membershipCount === 0) {
-          // First login: assign user to ALL schools
-          const allSchools = await prisma.school.findMany({
-            select: { id: true },
-            orderBy: { name: "asc" },
-          });
-
-          if (allSchools.length > 0) {
-            await prisma.userSchool.createMany({
-              data: allSchools.map((s) => ({ userId: user.id!, schoolId: s.id })),
-              skipDuplicates: true,
-            });
-
-            // Set active school to the first one if not set
-            const dbUser = await prisma.user.findUnique({
-              where: { id: user.id },
-              select: { schoolId: true },
-            });
-            if (!dbUser?.schoolId) {
-              await prisma.user.update({
-                where: { id: user.id },
-                data: { schoolId: allSchools[0].id },
-              });
-            }
-          }
-        }
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { schoolId: allSchools[0].id },
+        });
       }
-      return true;
     },
   },
   pages: {
