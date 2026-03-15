@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard, BookMarked, Users,
+  BookOpen, LayoutDashboard, BookMarked, Users,
   LogOut, Shield, BookCopy, ChevronDown,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
