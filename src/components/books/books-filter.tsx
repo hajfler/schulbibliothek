@@ -21,7 +21,12 @@ const availabilityOptions = [
   { value: "false", label: "Ausgeliehen" },
 ];
 
-export function BooksFilter() {
+interface School {
+  id: string;
+  name: string;
+}
+
+export function BooksFilter({ schools = [] }: { schools?: School[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -47,6 +52,7 @@ export function BooksFilter() {
 
   const currentType = searchParams.get("type") ?? "";
   const currentAvailable = searchParams.get("available") ?? "";
+  const currentSchool = searchParams.get("school") ?? "";
 
   return (
     <div className="flex flex-wrap gap-3 items-center">
@@ -82,6 +88,37 @@ export function BooksFilter() {
           </button>
         ))}
       </div>
+
+      {/* School filter (staff only) */}
+      {schools.length > 1 && (
+        <div className="flex gap-1.5 bg-white border border-[#C6C6C8] rounded-xl p-1">
+          <button
+            onClick={() => updateFilter("school", "")}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all",
+              currentSchool === ""
+                ? "bg-[#007AFF] text-white shadow-sm"
+                : "text-[#3A3A3C] hover:bg-[#F2F2F7]"
+            )}
+          >
+            Alle Schulhäuser
+          </button>
+          {schools.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => updateFilter("school", s.id)}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all",
+                currentSchool === s.id
+                  ? "bg-[#007AFF] text-white shadow-sm"
+                  : "text-[#3A3A3C] hover:bg-[#F2F2F7]"
+              )}
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Availability filter */}
       <div className="flex gap-1.5 bg-white border border-[#C6C6C8] rounded-xl p-1">

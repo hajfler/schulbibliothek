@@ -10,6 +10,7 @@ interface PageProps {
     search?: string;
     type?: string;
     available?: string;
+    school?: string;
   }>;
 }
 
@@ -17,12 +18,20 @@ export default async function BooksPage({ searchParams }: PageProps) {
   const session = await auth();
   if (!session) return null;
 
-  const { search = "", type, available } = await searchParams;
-  const schoolId = session.user.schoolId;
+  const { search = "", type, available, school } = await searchParams;
   const isStaff = ["LIBRARIAN", "ADMIN"].includes(session.user.role);
 
+  // Admins/Librarians see all schools; regular users only their own school
+  const schoolFilter = isStaff
+    ? (school ? { schoolId: school } : {})
+    : (session.user.schoolId ? { schoolId: session.user.schoolId } : {});
+
+  const schools = isStaff
+    ? await prisma.school.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
+    : [];
+
   const where = {
-    ...(schoolId ? { schoolId } : {}),
+    ...schoolFilter,
     ...(search && {
       OR: [
         { title: { contains: search, mode: "insensitive" as const } },
@@ -87,7 +96,7 @@ export default async function BooksPage({ searchParams }: PageProps) {
       </div>
 
       {/* Filter */}
-      <BooksFilter />
+      <BooksFilter schools={schools} />
 
       {/* Grid */}
       {booksWithAvailability.length === 0 ? (
