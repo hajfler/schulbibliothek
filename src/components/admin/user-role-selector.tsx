@@ -4,10 +4,17 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/toast";
 
+interface School {
+  id: string;
+  name: string;
+}
+
 interface UserRoleSelectorProps {
   userId: string;
   currentRole: string;
+  currentSchoolId: string | null;
   isAdmin: boolean;
+  schools: School[];
 }
 
 const roles = [
@@ -16,24 +23,33 @@ const roles = [
   { value: "ADMIN", label: "Admin" },
 ];
 
-export function UserRoleSelector({ userId, currentRole, isAdmin }: UserRoleSelectorProps) {
+const selectClass =
+  "bg-[#F2F2F7] border-0 rounded-lg px-3 py-1.5 text-[13px] font-medium text-[#1C1C1E] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 disabled:opacity-50";
+
+export function UserRoleSelector({
+  userId,
+  currentRole,
+  currentSchoolId,
+  isAdmin,
+  schools,
+}: UserRoleSelectorProps) {
   const [loading, setLoading] = React.useState(false);
   const { addToast } = useToast();
   const router = useRouter();
 
-  const handleChange = async (newRole: string) => {
+  const patch = async (data: { role?: string; schoolId?: string | null }) => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/users", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, role: newRole }),
+        body: JSON.stringify({ userId, ...data }),
       });
       if (!res.ok) {
-        addToast("Fehler beim Aktualisieren der Rolle", "error");
+        addToast("Fehler beim Aktualisieren", "error");
         return;
       }
-      addToast("Rolle aktualisiert", "success");
+      addToast("Gespeichert", "success");
       router.refresh();
     } catch {
       addToast("Fehler", "error");
@@ -45,17 +61,35 @@ export function UserRoleSelector({ userId, currentRole, isAdmin }: UserRoleSelec
   const availableRoles = isAdmin ? roles : roles.filter((r) => r.value !== "ADMIN");
 
   return (
-    <select
-      value={currentRole}
-      onChange={(e) => handleChange(e.target.value)}
-      disabled={loading}
-      className="bg-[#F2F2F7] border-0 rounded-lg px-3 py-1.5 text-[13px] font-medium text-[#1C1C1E] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 disabled:opacity-50"
-    >
-      {availableRoles.map((r) => (
-        <option key={r.value} value={r.value}>
-          {r.label}
-        </option>
-      ))}
-    </select>
+    <div className="flex flex-col gap-2">
+      <select
+        value={currentRole}
+        onChange={(e) => patch({ role: e.target.value })}
+        disabled={loading}
+        className={selectClass}
+      >
+        {availableRoles.map((r) => (
+          <option key={r.value} value={r.value}>
+            {r.label}
+          </option>
+        ))}
+      </select>
+
+      {isAdmin && schools.length > 0 && (
+        <select
+          value={currentSchoolId ?? ""}
+          onChange={(e) => patch({ schoolId: e.target.value || null })}
+          disabled={loading}
+          className={selectClass}
+        >
+          <option value="">Kein Schulhaus</option>
+          {schools.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
   );
 }

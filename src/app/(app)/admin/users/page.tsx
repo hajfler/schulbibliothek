@@ -12,20 +12,25 @@ export default async function AdminUsersPage() {
     redirect("/dashboard");
   }
 
-  const schoolId = session.user.schoolId;
+  const isAdmin = session.user.role === "ADMIN";
 
-  const users = await prisma.user.findMany({
-    where: schoolId ? { schoolId } : {},
-    include: {
-      school: { select: { name: true } },
-      _count: {
-        select: {
-          loans: { where: { status: { in: ["ACTIVE", "OVERDUE"] } } },
+  const [users, schools] = await Promise.all([
+    prisma.user.findMany({
+      where: isAdmin ? {} : { schoolId: session.user.schoolId ?? undefined },
+      include: {
+        school: { select: { id: true, name: true } },
+        _count: {
+          select: {
+            loans: { where: { status: { in: ["ACTIVE", "OVERDUE"] } } },
+          },
         },
       },
-    },
-    orderBy: { name: "asc" },
-  });
+      orderBy: { name: "asc" },
+    }),
+    isAdmin
+      ? prisma.school.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
+      : [],
+  ]);
 
   const roleColors = {
     ADMIN: "purple" as const,
@@ -56,7 +61,7 @@ export default async function AdminUsersPage() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-[#F2F2F7]">
-              {["Benutzer", "Rolle", "Aktive Ausleihen", "Seit", "Aktionen"].map((h) => (
+              {["Benutzer", "Schulhaus", "Rolle", "Ausleihen", "Seit", "Aktionen"].map((h) => (
                 <th key={h} className="text-left px-5 py-3.5 text-[12px] font-semibold text-[#8E8E93] uppercase tracking-wide">
                   {h}
                 </th>
@@ -90,6 +95,13 @@ export default async function AdminUsersPage() {
                   </div>
                 </td>
                 <td className="px-5 py-4">
+                  {user.school ? (
+                    <span className="text-[13px] text-[#3A3A3C] font-medium">{user.school.name}</span>
+                  ) : (
+                    <span className="text-[12px] text-[#FF3B30] font-medium">Nicht zugewiesen</span>
+                  )}
+                </td>
+                <td className="px-5 py-4">
                   <Badge variant={roleColors[user.role]}>
                     {roleLabels[user.role]}
                   </Badge>
@@ -112,7 +124,9 @@ export default async function AdminUsersPage() {
                     <UserRoleSelector
                       userId={user.id}
                       currentRole={user.role}
-                      isAdmin={session.user.role === "ADMIN"}
+                      currentSchoolId={user.school?.id ?? null}
+                      isAdmin={isAdmin}
+                      schools={schools}
                     />
                   )}
                 </td>
