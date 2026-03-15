@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  BookOpen, LayoutDashboard, BookMarked, Users, Settings,
+  BookOpen, LayoutDashboard, BookMarked, Users,
   LogOut, Shield, BookCopy, ChevronDown,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -128,13 +128,6 @@ export function Sidebar({ session }: SidebarProps) {
             </p>
           </div>
         </div>
-        <Link
-          href="/settings"
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] text-[#3A3A3C] hover:bg-[#F2F2F7] transition-colors"
-        >
-          <Settings size={15} className="text-[#8E8E93]" />
-          Einstellungen
-        </Link>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] text-[#FF3B30] hover:bg-[#FFF0EF] transition-colors"
