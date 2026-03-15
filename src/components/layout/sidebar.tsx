@@ -31,8 +31,8 @@ const adminItems = [
 
 export function Sidebar({ session }: SidebarProps) {
   const pathname = usePathname();
-  const isStaff = ["LIBRARIAN", "ADMIN"].includes(session.user.role);
-  const isAdmin = session.user.role === "ADMIN";
+  const isStaff = ["LIBRARIAN", "ADMIN"].includes(session.user?.role ?? "USER");
+  const isAdmin = (session.user?.role ?? "USER") === "ADMIN";
   const [adminExpanded, setAdminExpanded] = React.useState(
     pathname.startsWith("/admin")
   );
