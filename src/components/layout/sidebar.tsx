@@ -108,23 +108,23 @@ export function Sidebar({ session }: SidebarProps) {
       {/* User */}
       <div className="px-3 py-4 border-t border-[#F2F2F7]">
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[#F2F2F7] mb-2">
-          {session.user.image ? (
+          {session.user?.image ? (
             <img
               src={session.user.image}
-              alt={session.user.name ?? ""}
+              alt={session.user?.name ?? ""}
               className="w-8 h-8 rounded-full object-cover"
             />
           ) : (
             <div className="w-8 h-8 rounded-full bg-[#007AFF] flex items-center justify-center text-white text-[13px] font-semibold">
-              {session.user.name?.[0]?.toUpperCase() ?? "U"}
+              {session.user?.name?.[0]?.toUpperCase() ?? "U"}
             </div>
           )}
           <div className="flex-1 min-w-0">
             <p className="text-[13px] font-semibold text-[#1C1C1E] truncate">
-              {session.user.name ?? "Unbekannt"}
+              {session.user?.name ?? "Unbekannt"}
             </p>
             <p className="text-[11px] text-[#8E8E93] truncate">
-              {session.user.email}
+              {session.user?.email}
             </p>
           </div>
         </div>
