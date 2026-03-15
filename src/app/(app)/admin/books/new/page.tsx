@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { BookForm } from "@/components/books/book-form";
 import { ToastProvider } from "@/components/ui/toast";
@@ -7,9 +8,17 @@ import Link from "next/link";
 
 export default async function NewBookPage() {
   const session = await auth();
-  if (!session || !["LIBRARIAN", "ADMIN"].includes(session.user.role)) {
+  if (!session || !["LIBRARIAN", "ADMIN"].includes(session.user?.role ?? "")) {
     redirect("/books");
   }
+
+  // Admins can create books for any school; others only for their own school
+  const isAdmin = session.user?.role === "ADMIN";
+  const schools = isAdmin
+    ? await prisma.school.findMany({ orderBy: { name: "asc" } })
+    : session.user?.schoolId
+    ? await prisma.school.findMany({ where: { id: session.user.schoolId } })
+    : [];
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -31,7 +40,11 @@ export default async function NewBookPage() {
       </div>
 
       <ToastProvider>
-        <BookForm mode="create" schoolId={session.user.schoolId ?? undefined} />
+        <BookForm
+          mode="create"
+          schoolId={session.user?.schoolId ?? undefined}
+          schools={schools}
+        />
       </ToastProvider>
     </div>
   );

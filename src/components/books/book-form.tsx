@@ -55,9 +55,15 @@ interface BookFormData {
   totalCopies: string;
 }
 
+interface School {
+  id: string;
+  name: string;
+}
+
 interface BookFormProps {
   initialData?: Partial<BookFormData> & { id?: string };
   schoolId?: string;
+  schools?: School[];
   mode: "create" | "edit";
 }
 
@@ -68,8 +74,9 @@ const empty: BookFormData = {
   totalCopies: "1",
 };
 
-export function BookForm({ initialData, schoolId, mode }: BookFormProps) {
+export function BookForm({ initialData, schoolId, schools = [], mode }: BookFormProps) {
   const [data, setData] = React.useState<BookFormData>({ ...empty, ...initialData });
+  const [selectedSchoolId, setSelectedSchoolId] = React.useState<string>(schoolId ?? schools[0]?.id ?? "");
   const [loading, setLoading] = React.useState(false);
   const [isbnLoading, setIsbnLoading] = React.useState(false);
   const [errors, setErrors] = React.useState<Partial<BookFormData>>({});
@@ -136,7 +143,7 @@ export function BookForm({ initialData, schoolId, mode }: BookFormProps) {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, schoolId }),
+        body: JSON.stringify({ ...data, schoolId: selectedSchoolId || schoolId }),
       });
 
       if (!res.ok) {
@@ -161,6 +168,18 @@ export function BookForm({ initialData, schoolId, mode }: BookFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
+      {/* School selector (only for admins with multiple schools) */}
+      {schools.length > 1 && (
+        <div className="card p-6">
+          <Select
+            label="Schulhaus"
+            value={selectedSchoolId}
+            onChange={(e) => setSelectedSchoolId(e.target.value)}
+            options={schools.map((s) => ({ value: s.id, label: s.name }))}
+          />
+        </div>
+      )}
+
       {/* ISBN + Scanner */}
       <div className="card p-6 space-y-4">
         <div className="flex items-center justify-between mb-2">
@@ -223,7 +242,7 @@ export function BookForm({ initialData, schoolId, mode }: BookFormProps) {
           error={errors.author}
         />
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
             label="Verlag"
             value={data.publishingHouse}
@@ -238,7 +257,7 @@ export function BookForm({ initialData, schoolId, mode }: BookFormProps) {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Select
             label="Publikationstyp"
             value={data.typePublication}
@@ -253,7 +272,7 @@ export function BookForm({ initialData, schoolId, mode }: BookFormProps) {
           />
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Input
             label="Erscheinungsdatum"
             value={data.publishedDate}

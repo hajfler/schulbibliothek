@@ -53,7 +53,7 @@ export default async function DashboardPage() {
           Hallo, {firstName}
         </h1>
         <p className="text-[15px] text-[#8E8E93] mt-1">
-          Willkommen in der Schulbibliothek Dietlikon
+          Willkommen in der Bibliothek
         </p>
       </div>
 

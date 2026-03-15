@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  BookOpen, LayoutDashboard, BookMarked, Users,
+  LayoutDashboard, BookMarked, Users,
   LogOut, Shield, BookCopy, ChevronDown,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -38,20 +38,10 @@ export function Sidebar({ session }: SidebarProps) {
   );
 
   return (
-    <aside className="w-[240px] flex-shrink-0 bg-white border-r border-[#F2F2F7] flex flex-col h-screen sticky top-0">
+    <aside className="w-[240px] flex-shrink-0 bg-white border-r border-[#F2F2F7] flex flex-col h-screen sticky top-0 overflow-y-auto">
       {/* Logo */}
       <div className="px-6 py-5 border-b border-[#F2F2F7]">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-[#007AFF] rounded-xl flex items-center justify-center shadow-sm">
-            <BookOpen size={18} className="text-white" />
-          </div>
-          <div>
-            <p className="text-[14px] font-bold text-[#1C1C1E] leading-tight">
-              Schulbibliothek
-            </p>
-            <p className="text-[11px] text-[#8E8E93]">Dietlikon</p>
-          </div>
-        </div>
+        <img src="/logo.svg" alt="Schule Dietlikon" className="h-7 w-auto" />
       </div>
 
       {/* Nav */}

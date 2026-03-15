@@ -63,10 +63,9 @@ export async function sendReminderEmail(data: ReminderEmailData) {
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
           <!-- Header -->
           <tr>
-            <td style="background-color:#007AFF;border-radius:16px 16px 0 0;padding:32px 40px;text-align:center;">
-              <div style="font-size:32px;margin-bottom:8px;">📚</div>
-              <h1 style="color:#FFFFFF;font-size:22px;font-weight:700;margin:0;">${schoolName}</h1>
-              <p style="color:rgba(255,255,255,0.8);font-size:14px;margin:4px 0 0;">Schulbibliothek</p>
+            <td style="background-color:#FFFFFF;border-radius:16px 16px 0 0;padding:28px 40px;text-align:center;border-bottom:1px solid #F2F2F7;">
+              <img src="${process.env.NEXTAUTH_URL}/logo.svg" alt="Schule Dietlikon" style="height:32px;width:auto;margin-bottom:12px;" />
+              <p style="color:#8E8E93;font-size:13px;margin:0;">Bibliothek · ${schoolName}</p>
             </td>
           </tr>
           <!-- Body -->
@@ -105,7 +104,7 @@ export async function sendReminderEmail(data: ReminderEmailData) {
           <tr>
             <td style="background-color:#F2F2F7;border-radius:0 0 16px 16px;padding:24px 40px;text-align:center;">
               <p style="color:#8E8E93;font-size:13px;margin:0;">
-                Diese E-Mail wurde automatisch von der Schulbibliothek ${schoolName} gesendet.
+                Diese E-Mail wurde automatisch von der Bibliothek ${schoolName} gesendet.
               </p>
             </td>
           </tr>

@@ -5,10 +5,11 @@ import { formatDate, getDaysUntilDue } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { LoanModal } from "@/components/loans/loan-modal";
 import {
-  BookOpen, ArrowLeft, BookMarked, Users, Calendar,
-  Hash, Building2, Layers, FileText, Globe, Edit2, Trash2
+  BookOpen, ArrowLeft, BookMarked, Calendar,
+  Hash, Building2, Layers, FileText, Globe, Edit2
 } from "lucide-react";
 import Link from "next/link";
+import { ContactBorrowerModal } from "@/components/loans/contact-borrower-modal";
 
 const typeLabels: Record<string, string> = {
   BOOK: "Buch", MAGAZINE: "Zeitschrift", COMIC: "Comic",
@@ -66,7 +67,7 @@ export default async function BookDetailPage({
         Zurück zur Übersicht
       </Link>
 
-      <div className="grid lg:grid-cols-[280px_1fr] gap-8">
+      <div className="grid md:grid-cols-[240px_1fr] gap-6 md:gap-8">
         {/* Cover */}
         <div className="space-y-4">
           <div
@@ -185,7 +186,7 @@ export default async function BookDetailPage({
             <h3 className="text-[13px] font-semibold text-[#8E8E93] uppercase tracking-wide mb-4">
               Buchdetails
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {book.isbn && (
                 <InfoRow icon={<Hash size={15} />} label="ISBN" value={book.isbn} />
               )}
@@ -233,6 +234,12 @@ export default async function BookDetailPage({
                           <p className="text-[12px] text-[#8E8E93]">
                             {loan.user.email}
                           </p>
+                          <ContactBorrowerModal
+                            loanId={loan.id}
+                            borrowerName={loan.user.name ?? loan.user.email ?? ""}
+                            borrowerEmail={loan.user.email ?? ""}
+                            bookTitle={book.title}
+                          />
                         </div>
                       </div>
                       <Badge variant={isOverdue ? "red" : days <= 3 ? "orange" : "blue"}>

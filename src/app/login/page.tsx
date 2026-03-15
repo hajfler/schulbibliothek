@@ -1,6 +1,5 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { BookOpen } from "lucide-react";
 import { LoginButton } from "./login-button";
 
 export default async function LoginPage() {
@@ -12,11 +11,9 @@ export default async function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-10">
-          <div className="w-20 h-20 bg-[#007AFF] rounded-[22px] flex items-center justify-center mx-auto mb-5 shadow-lg shadow-[#007AFF]/30">
-            <BookOpen size={36} className="text-white" />
-          </div>
+          <img src="/logo.svg" alt="Schule Dietlikon" className="h-10 w-auto mx-auto mb-5" />
           <h1 className="text-[28px] font-bold text-[#1C1C1E] tracking-tight">
-            Schulbibliothek
+            Bibliothek
           </h1>
           <p className="text-[15px] text-[#8E8E93] mt-1">Schule Dietlikon</p>
         </div>
@@ -39,7 +36,7 @@ export default async function LoginPage() {
         </div>
 
         <p className="text-[12px] text-[#C7C7CC] text-center mt-6">
-          Schulbibliothek Dietlikon · Schulhaus Dorf
+          Bibliothek - Schule Dietlikon
         </p>
       </div>
     </div>
