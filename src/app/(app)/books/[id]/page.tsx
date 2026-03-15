@@ -208,8 +208,8 @@ export default async function BookDetailPage({
             </div>
           </div>
 
-          {/* Active borrowers (staff only) */}
-          {isStaff && activeLoans.length > 0 && (
+          {/* Active borrowers */}
+          {activeLoans.length > 0 && (
             <div className="card p-5">
               <h3 className="text-[13px] font-semibold text-[#8E8E93] uppercase tracking-wide mb-4">
                 Aktuell ausgeliehen
