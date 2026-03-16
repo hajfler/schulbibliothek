@@ -72,10 +72,13 @@ export function ReserveButton({ bookId, reservationId }: Props) {
     <button
       onClick={reserve}
       disabled={loading}
-      className="w-full flex items-center justify-center gap-2 border border-[#007AFF] text-[#007AFF] font-semibold py-3 rounded-xl hover:bg-[#EBF5FF] transition-colors text-[15px] disabled:opacity-50"
+      className="w-full flex items-center justify-between gap-3 border border-[#007AFF] text-[#007AFF] font-semibold px-4 py-3 rounded-xl hover:bg-[#EBF5FF] transition-colors disabled:opacity-50"
     >
-      {loading ? <Loader2 size={16} className="animate-spin" /> : <Bell size={16} />}
-      Benachrichtigen wenn verfügbar
+      <div className="flex flex-col items-start text-left">
+        <span className="text-[15px] font-semibold leading-tight">Benachrichtigen</span>
+        <span className="text-[12px] font-normal text-[#007AFF]/70 leading-tight">wenn verfügbar</span>
+      </div>
+      {loading ? <Loader2 size={18} className="animate-spin flex-shrink-0" /> : <Bell size={18} className="flex-shrink-0" />}
     </button>
   );
 }
