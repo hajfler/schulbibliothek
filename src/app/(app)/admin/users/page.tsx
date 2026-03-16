@@ -140,6 +140,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                   <UserLoansModal
                     userId={user.id}
                     userName={user.name ?? user.email ?? ""}
+                    userEmail={user.email ?? ""}
                     loanCount={user._count.loans}
                   />
                 </td>

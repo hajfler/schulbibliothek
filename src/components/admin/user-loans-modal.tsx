@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { BookMarked, X, BookOpen, AlertCircle } from "lucide-react";
-import Link from "next/link";
+import { AdminLoanActions } from "@/components/loans/admin-loan-actions";
 
 interface Loan {
   id: string;
@@ -20,13 +20,21 @@ interface Loan {
 interface Props {
   userId: string;
   userName: string;
+  userEmail: string;
   loanCount: number;
 }
 
-export function UserLoansModal({ userId, userName, loanCount }: Props) {
+export function UserLoansModal({ userId, userName, userEmail, loanCount }: Props) {
   const [open, setOpen] = useState(false);
   const [loans, setLoans] = useState<Loan[] | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Reset cached loans when loanCount changes (after a return/lost action refreshes the page)
+  const prevCountRef = useState(loanCount);
+  if (prevCountRef[0] !== loanCount) {
+    prevCountRef[0] = loanCount;
+    setLoans(null);
+  }
 
   const handleOpen = async () => {
     setOpen(true);
@@ -115,12 +123,11 @@ export function UserLoansModal({ userId, userName, loanCount }: Props) {
                     const days = daysUntil(loan.dueDate);
                     const isOverdue = loan.status === "OVERDUE" || days < 0;
                     return (
-                      <Link
+                      <div
                         key={loan.id}
-                        href={`/books/${loan.book.id}`}
-                        onClick={() => setOpen(false)}
-                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#F2F2F7] transition-colors"
+                        className="flex items-center gap-3 p-3 rounded-xl bg-[#F9F9FB] border border-[#F2F2F7]"
                       >
+                        {/* Cover */}
                         {loan.book.coverUrl ? (
                           <img
                             src={loan.book.coverUrl}
@@ -132,16 +139,16 @@ export function UserLoansModal({ userId, userName, loanCount }: Props) {
                             <BookOpen size={16} className="text-[#C7C7CC]" />
                           </div>
                         )}
+
+                        {/* Info */}
                         <div className="flex-1 min-w-0">
                           <p className="text-[14px] font-semibold text-[#1C1C1E] truncate">
                             {loan.book.title}
                           </p>
-                          <p className="text-[12px] text-[#8E8E93]">{loan.book.author}</p>
-                          <div className="flex items-center gap-1 mt-1">
-                            {isOverdue ? (
-                              <AlertCircle size={12} className="text-[#FF3B30]" />
-                            ) : null}
-                            <span className={`text-[12px] font-medium ${isOverdue ? "text-[#FF3B30]" : days <= 3 ? "text-[#FF9500]" : "text-[#8E8E93]"}`}>
+                          <p className="text-[12px] text-[#8E8E93] truncate">{loan.book.author}</p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            {isOverdue && <AlertCircle size={11} className="text-[#FF3B30] flex-shrink-0" />}
+                            <span className={`text-[11px] font-medium ${isOverdue ? "text-[#FF3B30]" : days <= 3 ? "text-[#FF9500]" : "text-[#8E8E93]"}`}>
                               {isOverdue
                                 ? `${Math.abs(days)}T überfällig`
                                 : days === 0
@@ -150,19 +157,18 @@ export function UserLoansModal({ userId, userName, loanCount }: Props) {
                             </span>
                           </div>
                         </div>
-                        <div className="text-right flex-shrink-0">
-                          <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
-                            isOverdue
-                              ? "bg-[#FFF2F0] text-[#FF3B30]"
-                              : "bg-[#EBF5FF] text-[#007AFF]"
-                          }`}>
-                            {isOverdue ? "Überfällig" : "Aktiv"}
-                          </span>
-                          <p className="text-[11px] text-[#C7C7CC] mt-1">
-                            seit {formatDate(loan.borrowedAt)}
-                          </p>
+
+                        {/* Actions */}
+                        <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <AdminLoanActions
+                            loanId={loan.id}
+                            status={loan.status}
+                            userEmail={userEmail}
+                            bookTitle={loan.book.title}
+                            currentDueDate={loan.dueDate}
+                          />
                         </div>
-                      </Link>
+                      </div>
                     );
                   })}
                 </div>
