@@ -4,11 +4,24 @@ import { prisma } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { UserRoleSelector } from "@/components/admin/user-role-selector";
-import { Mail, BookMarked } from "lucide-react";
+import { Mail } from "lucide-react";
 import { UserSearchInput } from "@/components/admin/user-search-input";
+import { UserLoansModal } from "@/components/admin/user-loans-modal";
 
 interface PageProps {
   searchParams: Promise<{ search?: string }>;
+}
+
+interface UserWithDetails {
+  id: string;
+  name: string | null;
+  email: string | null;
+  image: string | null;
+  role: "USER" | "LIBRARIAN" | "ADMIN";
+  createdAt: Date;
+  school: { id: string; name: string } | null;
+  schoolMemberships: { schoolId: string }[];
+  _count: { loans: number };
 }
 
 export default async function AdminUsersPage({ searchParams }: PageProps) {
@@ -19,22 +32,19 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
 
   const { search } = await searchParams;
   const isAdmin = session.user.role === "ADMIN";
+  const schoolId = isAdmin ? undefined : (session.user.schoolId ?? undefined);
 
   const [users, schools] = await Promise.all([
     prisma.user.findMany({
-      where: {
-        AND: [
-          isAdmin ? {} : { schoolId: session.user.schoolId ?? undefined },
-          search
-            ? {
-                OR: [
-                  { name: { contains: search, mode: "insensitive" } },
-                  { email: { contains: search, mode: "insensitive" } },
-                ],
-              }
-            : {},
-        ],
-      },
+      where: search
+        ? {
+            schoolId,
+            OR: [
+              { name: { contains: search, mode: "insensitive" } },
+              { email: { contains: search, mode: "insensitive" } },
+            ],
+          }
+        : { schoolId },
       include: {
         school: { select: { id: true, name: true } },
         schoolMemberships: { select: { schoolId: true } },
@@ -45,10 +55,10 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
         },
       },
       orderBy: { name: "asc" },
-    }),
+    }) as unknown as Promise<UserWithDetails[]>,
     isAdmin
       ? prisma.school.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
-      : [],
+      : Promise.resolve([] as { id: string; name: string }[]),
   ]);
 
   const roleColors = {
@@ -127,12 +137,11 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                   </Badge>
                 </td>
                 <td className="px-5 py-4">
-                  <div className="flex items-center gap-1.5">
-                    <BookMarked size={14} className="text-[#8E8E93]" />
-                    <span className="text-[14px] text-[#3A3A3C]">
-                      {user._count.loans}
-                    </span>
-                  </div>
+                  <UserLoansModal
+                    userId={user.id}
+                    userName={user.name ?? user.email ?? ""}
+                    loanCount={user._count.loans}
+                  />
                 </td>
                 <td className="px-5 py-4">
                   <p className="text-[13px] text-[#8E8E93]">
