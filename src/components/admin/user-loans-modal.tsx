@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BookMarked, X, BookOpen, AlertCircle } from "lucide-react";
+import Link from "next/link";
 import { AdminLoanActions } from "@/components/loans/admin-loan-actions";
 
 interface Loan {
@@ -127,36 +128,40 @@ export function UserLoansModal({ userId, userName, userEmail, loanCount }: Props
                         key={loan.id}
                         className="flex items-center gap-3 p-3 rounded-xl bg-[#F9F9FB] border border-[#F2F2F7]"
                       >
-                        {/* Cover */}
-                        {loan.book.coverUrl ? (
-                          <img
-                            src={loan.book.coverUrl}
-                            alt=""
-                            className="w-9 h-12 object-cover rounded-md shadow-sm flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="w-9 h-12 bg-[#F2F2F7] rounded-md flex-shrink-0 flex items-center justify-center">
-                            <BookOpen size={16} className="text-[#C7C7CC]" />
-                          </div>
-                        )}
-
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[14px] font-semibold text-[#1C1C1E] truncate">
+                        {/* Cover + Info — klickbar zur Buchdetail-Seite */}
+                        <Link
+                          href={`/books/${loan.book.id}`}
+                          onClick={() => setOpen(false)}
+                          className="flex items-center gap-3 flex-1 min-w-0 group"
+                        >
+                          {loan.book.coverUrl ? (
+                            <img
+                              src={loan.book.coverUrl}
+                              alt=""
+                              className="w-9 h-12 object-cover rounded-md shadow-sm flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-9 h-12 bg-[#F2F2F7] rounded-md flex-shrink-0 flex items-center justify-center">
+                              <BookOpen size={16} className="text-[#C7C7CC]" />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                          <p className="text-[14px] font-semibold text-[#1C1C1E] truncate group-hover:text-[#007AFF] transition-colors">
                             {loan.book.title}
                           </p>
                           <p className="text-[12px] text-[#8E8E93] truncate">{loan.book.author}</p>
-                          <div className="flex items-center gap-1 mt-0.5">
-                            {isOverdue && <AlertCircle size={11} className="text-[#FF3B30] flex-shrink-0" />}
-                            <span className={`text-[11px] font-medium ${isOverdue ? "text-[#FF3B30]" : days <= 3 ? "text-[#FF9500]" : "text-[#8E8E93]"}`}>
-                              {isOverdue
-                                ? `${Math.abs(days)}T überfällig`
-                                : days === 0
-                                ? "Heute fällig"
-                                : `Fällig ${formatDate(loan.dueDate)}`}
-                            </span>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              {isOverdue && <AlertCircle size={11} className="text-[#FF3B30] flex-shrink-0" />}
+                              <span className={`text-[11px] font-medium ${isOverdue ? "text-[#FF3B30]" : days <= 3 ? "text-[#FF9500]" : "text-[#8E8E93]"}`}>
+                                {isOverdue
+                                  ? `${Math.abs(days)}T überfällig`
+                                  : days === 0
+                                  ? "Heute fällig"
+                                  : `Fällig ${formatDate(loan.dueDate)}`}
+                              </span>
+                            </div>
                           </div>
-                        </div>
+                        </Link>
 
                         {/* Actions */}
                         <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
