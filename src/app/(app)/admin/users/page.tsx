@@ -4,19 +4,36 @@ import { prisma } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { UserRoleSelector } from "@/components/admin/user-role-selector";
-import { Users, Mail, BookMarked } from "lucide-react";
+import { Mail, BookMarked, Search } from "lucide-react";
 
-export default async function AdminUsersPage() {
+interface PageProps {
+  searchParams: Promise<{ search?: string }>;
+}
+
+export default async function AdminUsersPage({ searchParams }: PageProps) {
   const session = await auth();
   if (!session || !["LIBRARIAN", "ADMIN"].includes(session.user.role)) {
     redirect("/dashboard");
   }
 
+  const { search } = await searchParams;
   const isAdmin = session.user.role === "ADMIN";
 
   const [users, schools] = await Promise.all([
     prisma.user.findMany({
-      where: isAdmin ? {} : { schoolId: session.user.schoolId ?? undefined },
+      where: {
+        AND: [
+          isAdmin ? {} : { schoolId: session.user.schoolId ?? undefined },
+          search
+            ? {
+                OR: [
+                  { name: { contains: search, mode: "insensitive" } },
+                  { email: { contains: search, mode: "insensitive" } },
+                ],
+              }
+            : {},
+        ],
+      },
       include: {
         school: { select: { id: true, name: true } },
         schoolMemberships: { select: { schoolId: true } },
@@ -47,15 +64,33 @@ export default async function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-[28px] font-bold text-[#1C1C1E] tracking-tight">
             Benutzer
           </h1>
           <p className="text-[14px] text-[#8E8E93] mt-0.5">
-            {users.length} Benutzer
+            {users.length} Benutzer{search ? ` für „${search}"` : ""}
           </p>
         </div>
+        <form method="GET" className="flex items-center gap-2">
+          <div className="relative">
+            <input
+              type="text"
+              name="search"
+              defaultValue={search ?? ""}
+              placeholder="Name oder E-Mail suchen…"
+              className="pl-9 pr-3 py-2 text-[14px] border border-[#C6C6C8] rounded-xl bg-white focus:outline-none focus:border-[#007AFF] w-64"
+              autoComplete="off"
+            />
+            <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8E8E93]" />
+          </div>
+          {search && (
+            <a href="/admin/users" className="text-[13px] text-[#007AFF] hover:underline whitespace-nowrap">
+              Zurücksetzen
+            </a>
+          )}
+        </form>
       </div>
 
       <div className="card overflow-hidden">
