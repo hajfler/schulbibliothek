@@ -187,11 +187,11 @@ export default async function MyLoansPage() {
                   </Link>
                   <div className="flex-1 min-w-0">
                     <Link href={`/books/${res.book.id}`}>
-                      <h3 className="text-[16px] font-semibold text-[#1C1C1E] hover:text-[#007AFF] transition-colors">
+                      <h3 className="text-[16px] font-semibold text-[#1C1C1E] hover:text-[#007AFF] transition-colors truncate">
                         {res.book.title}
                       </h3>
                     </Link>
-                    <p className="text-[13px] text-[#8E8E93] mt-0.5">{res.book.author}</p>
+                    <p className="text-[13px] text-[#8E8E93] mt-0.5 truncate">{res.book.author}</p>
                     <p className="text-[12px] text-[#C7C7CC] mt-0.5">{res.book.school.name}</p>
                     <div className="mt-3">
                       <Badge variant="orange">
@@ -202,8 +202,10 @@ export default async function MyLoansPage() {
                     <p className="text-[11px] text-[#C7C7CC] mt-2">
                       Reserviert am {formatDate(res.createdAt)}
                     </p>
+                    <div className="mt-3">
+                      <ReserveButton bookId={res.book.id} reservationId={res.id} />
+                    </div>
                   </div>
-                  <ReserveButton bookId={res.book.id} reservationId={res.id} />
                 </div>
               </div>
             ))}
