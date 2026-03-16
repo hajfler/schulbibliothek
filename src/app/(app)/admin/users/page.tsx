@@ -4,7 +4,8 @@ import { prisma } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { UserRoleSelector } from "@/components/admin/user-role-selector";
-import { Mail, BookMarked, Search } from "lucide-react";
+import { Mail, BookMarked } from "lucide-react";
+import { UserSearchInput } from "@/components/admin/user-search-input";
 
 interface PageProps {
   searchParams: Promise<{ search?: string }>;
@@ -73,24 +74,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
             {users.length} Benutzer{search ? ` für „${search}"` : ""}
           </p>
         </div>
-        <form method="GET" className="flex items-center gap-2">
-          <div className="relative">
-            <input
-              type="text"
-              name="search"
-              defaultValue={search ?? ""}
-              placeholder="Name oder E-Mail suchen…"
-              className="pl-9 pr-3 py-2 text-[14px] border border-[#C6C6C8] rounded-xl bg-white focus:outline-none focus:border-[#007AFF] w-64"
-              autoComplete="off"
-            />
-            <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8E8E93]" />
-          </div>
-          {search && (
-            <a href="/admin/users" className="text-[13px] text-[#007AFF] hover:underline whitespace-nowrap">
-              Zurücksetzen
-            </a>
-          )}
-        </form>
+        <UserSearchInput />
       </div>
 
       <div className="card overflow-hidden">
