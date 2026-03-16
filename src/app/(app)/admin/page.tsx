@@ -4,9 +4,10 @@ import { prisma } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
-  BookOpen, Users, BookMarked, AlertCircle, TrendingUp, Clock,
+  BookOpen, Users, BookMarked, AlertCircle, TrendingUp, Clock, Bell,
 } from "lucide-react";
 import Link from "next/link";
+import { TriggerRemindersButton } from "@/components/admin/trigger-reminders-button";
 
 export default async function AdminPage() {
   const session = await auth();
@@ -25,6 +26,7 @@ export default async function AdminPage() {
     overdueLoans,
     recentLoans,
     popularBooks,
+    pendingReminders,
   ] = await Promise.all([
     prisma.book.count({ where: schoolFilter }),
     prisma.user.count({ where: schoolId ? { schoolId } : {} }),
@@ -52,6 +54,13 @@ export default async function AdminPage() {
       include: { _count: { select: { loans: true } } },
       orderBy: { loans: { _count: "desc" } },
       take: 5,
+    }),
+    prisma.reminder.count({
+      where: {
+        status: "PENDING",
+        scheduledAt: { lte: new Date(Date.now() + 60 * 60 * 1000) },
+        loan: { status: { in: ["ACTIVE", "OVERDUE"] }, ...bookSchoolFilter },
+      },
     }),
   ]);
 
@@ -174,6 +183,34 @@ export default async function AdminPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Reminders */}
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h2 className="text-[17px] font-semibold text-[#1C1C1E] flex items-center gap-2">
+                <Bell size={18} className="text-[#FF9500]" />
+                Erinnerungs-E-Mails
+              </h2>
+              <p className="text-[13px] text-[#8E8E93] mt-1">
+                {pendingReminders > 0
+                  ? `${pendingReminders} fällige Erinnerung${pendingReminders !== 1 ? "en" : ""} bereit`
+                  : "Keine fälligen Erinnerungen"}
+              </p>
+            </div>
+            <TriggerRemindersButton />
+          </div>
+          <p className="text-[13px] text-[#8E8E93] leading-relaxed">
+            Erinnerungen werden automatisch 3 Tage vor, 1 Tag vor und am Fälligkeitstag gesendet —
+            sowie nach 1 und 7 Tagen Überfälligkeit. Der Button sendet alle aktuell fälligen Erinnerungen sofort.
+          </p>
+          <div className="mt-4 p-3 bg-[#F2F2F7] rounded-xl">
+            <p className="text-[12px] font-semibold text-[#3A3A3C] mb-1">Coolify Cron-Job (täglich 08:00)</p>
+            <code className="text-[11px] text-[#8E8E93] break-all">
+              POST {process.env.NEXTAUTH_URL}/api/reminders/send · Bearer CRON_SECRET
+            </code>
           </div>
         </div>
 

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { formatDate, getDaysUntilDue } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { LoanModal } from "@/components/loans/loan-modal";
+import { ReserveButton } from "@/components/books/reserve-button";
 import {
   BookOpen, ArrowLeft, BookMarked, Calendar,
   Hash, Building2, Layers, FileText, Globe, Edit2
@@ -42,6 +43,10 @@ export default async function BookDetailPage({
           user: { select: { id: true, name: true, email: true } },
         },
       },
+      reservations: {
+        orderBy: { createdAt: "asc" },
+        select: { id: true, userId: true },
+      },
     },
   });
 
@@ -55,6 +60,7 @@ export default async function BookDetailPage({
   const myActiveLoan = book.loans.find(
     (l) => l.userId === session.user.id && ["ACTIVE", "OVERDUE"].includes(l.status)
   );
+  const myReservation = book.reservations.find((r) => r.userId === session.user.id) ?? null;
 
   return (
     <div className="space-y-6">
@@ -131,12 +137,23 @@ export default async function BookDetailPage({
             ) : isAvailable ? (
               <LoanModal book={{ id: book.id, title: book.title, author: book.author }} />
             ) : (
-              <button
-                disabled
-                className="w-full bg-[#F2F2F7] text-[#C7C7CC] font-semibold py-3 rounded-xl cursor-not-allowed text-[15px]"
-              >
-                Nicht verfügbar
-              </button>
+              <div className="space-y-2">
+                <button
+                  disabled
+                  className="w-full bg-[#F2F2F7] text-[#C7C7CC] font-semibold py-3 rounded-xl cursor-not-allowed text-[15px]"
+                >
+                  Momentan nicht verfügbar
+                </button>
+                <ReserveButton
+                  bookId={book.id}
+                  reservationId={myReservation?.id ?? null}
+                />
+                {book.reservations.length > 0 && (
+                  <p className="text-[12px] text-center text-[#8E8E93]">
+                    {book.reservations.length} Person{book.reservations.length !== 1 ? "en" : ""} auf der Warteliste
+                  </p>
+                )}
+              </div>
             )}
 
             {isStaff && (

@@ -51,11 +51,12 @@ model User {
   role          Role      @default(USER)
   schoolId      String?   // active/selected school for book filtering
 
-  accounts        Account[]
-  sessions        Session[]
-  loans           Loan[]
-  school          School?      @relation(fields: [schoolId], references: [id])
+  accounts          Account[]
+  sessions          Session[]
+  loans             Loan[]
+  school            School?        @relation(fields: [schoolId], references: [id])
   schoolMemberships UserSchool[]
+  reservations      Reservation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -104,14 +105,31 @@ model Book {
   totalCopies     Int             @default(1)
   schoolId        String
 
-  school School @relation(fields: [schoolId], references: [id])
-  loans  Loan[]
+  school       School        @relation(fields: [schoolId], references: [id])
+  loans        Loan[]
+  reservations Reservation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([isbn])
   @@index([schoolId])
+}
+
+model Reservation {
+  id         String    @id @default(cuid())
+  bookId     String
+  userId     String
+  notifiedAt DateTime?
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([bookId, userId])
+  @@index([bookId])
+  @@index([userId])
 }
 
 model Loan {

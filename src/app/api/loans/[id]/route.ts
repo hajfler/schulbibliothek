@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { sendReservationAvailableEmail } from "@/lib/email";
 
 export async function PATCH(
   req: NextRequest,
@@ -37,10 +38,7 @@ export async function PATCH(
   if (action === "return") {
     const updated = await prisma.loan.update({
       where: { id },
-      data: {
-        status: "RETURNED",
-        returnedAt: new Date(),
-      },
+      data: { status: "RETURNED", returnedAt: new Date() },
     });
 
     // Cancel pending reminders
@@ -48,6 +46,31 @@ export async function PATCH(
       where: { loanId: id, status: "PENDING" },
       data: { status: "FAILED" },
     });
+
+    // Notify first reservation holder (if any)
+    const firstReservation = await prisma.reservation.findFirst({
+      where: { bookId: loan.bookId, notifiedAt: null },
+      orderBy: { createdAt: "asc" },
+      include: {
+        user: { select: { name: true, email: true } },
+        book: { select: { title: true, author: true, school: { select: { name: true } } } },
+      },
+    });
+
+    if (firstReservation?.user.email) {
+      await prisma.reservation.update({
+        where: { id: firstReservation.id },
+        data: { notifiedAt: new Date() },
+      });
+      sendReservationAvailableEmail({
+        to: firstReservation.user.email,
+        userName: firstReservation.user.name ?? firstReservation.user.email,
+        bookTitle: firstReservation.book.title,
+        bookAuthor: firstReservation.book.author,
+        bookId: loan.bookId,
+        schoolName: firstReservation.book.school.name,
+      }).catch((err) => console.error("Reservation email failed:", err));
+    }
 
     return NextResponse.json(updated);
   }

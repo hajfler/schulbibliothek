@@ -3,8 +3,9 @@ import { prisma } from "@/lib/db";
 import { formatDate, getDaysUntilDue } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ReturnBookButton } from "@/components/loans/return-button";
-import { BookOpen, Clock, CheckCircle, AlertCircle, BookMarked } from "lucide-react";
+import { BookOpen, Clock, CheckCircle, AlertCircle, BookMarked, Bell } from "lucide-react";
 import Link from "next/link";
+import { ReserveButton } from "@/components/books/reserve-button";
 
 export default async function MyLoansPage() {
   const session = await auth();
@@ -20,18 +21,33 @@ export default async function MyLoansPage() {
     data: { status: "OVERDUE" },
   });
 
-  const loans = await prisma.loan.findMany({
-    where: { userId: session.user.id },
-    include: {
-      book: {
-        select: {
-          id: true, title: true, author: true, coverUrl: true,
-          school: { select: { name: true } },
+  const [loans, reservations] = await Promise.all([
+    prisma.loan.findMany({
+      where: { userId: session.user.id },
+      include: {
+        book: {
+          select: {
+            id: true, title: true, author: true, coverUrl: true,
+            school: { select: { name: true } },
+          },
         },
       },
-    },
-    orderBy: [{ status: "asc" }, { dueDate: "asc" }],
-  });
+      orderBy: [{ status: "asc" }, { dueDate: "asc" }],
+    }),
+    prisma.reservation.findMany({
+      where: { userId: session.user.id },
+      include: {
+        book: {
+          select: {
+            id: true, title: true, author: true, coverUrl: true,
+            school: { select: { name: true } },
+            _count: { select: { loans: { where: { status: { in: ["ACTIVE", "OVERDUE"] } } } } },
+          },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
 
   const activeLoans = loans.filter((l) => ["ACTIVE", "OVERDUE"].includes(l.status));
   const pastLoans = loans.filter((l) => ["RETURNED", "LOST"].includes(l.status));
@@ -43,7 +59,7 @@ export default async function MyLoansPage() {
           Meine Ausleihen
         </h1>
         <p className="text-[14px] text-[#8E8E93] mt-0.5">
-          {activeLoans.length} aktiv · {pastLoans.length} zurückgegeben
+          {activeLoans.length} aktiv · {pastLoans.length} zurückgegeben{reservations.length > 0 ? ` · ${reservations.length} reserviert` : ""}
         </p>
       </div>
 
@@ -144,6 +160,56 @@ export default async function MyLoansPage() {
           </div>
         )}
       </section>
+
+      {/* Reservations */}
+      {reservations.length > 0 && (
+        <section>
+          <h2 className="text-[17px] font-semibold text-[#1C1C1E] mb-4 flex items-center gap-2">
+            <Bell size={18} className="text-[#FF9500]" />
+            Meine Reservierungen
+          </h2>
+          <div className="space-y-3">
+            {reservations.map((res) => (
+              <div key={res.id} className="card p-5">
+                <div className="flex items-start gap-4">
+                  <Link href={`/books/${res.book.id}`} className="flex-shrink-0">
+                    {res.book.coverUrl ? (
+                      <img
+                        src={res.book.coverUrl}
+                        alt={res.book.title}
+                        className="w-14 h-20 object-cover rounded-xl shadow-sm"
+                      />
+                    ) : (
+                      <div className="w-14 h-20 bg-[#F2F2F7] rounded-xl flex items-center justify-center">
+                        <BookOpen size={20} className="text-[#C7C7CC]" />
+                      </div>
+                    )}
+                  </Link>
+                  <div className="flex-1 min-w-0">
+                    <Link href={`/books/${res.book.id}`}>
+                      <h3 className="text-[16px] font-semibold text-[#1C1C1E] hover:text-[#007AFF] transition-colors">
+                        {res.book.title}
+                      </h3>
+                    </Link>
+                    <p className="text-[13px] text-[#8E8E93] mt-0.5">{res.book.author}</p>
+                    <p className="text-[12px] text-[#C7C7CC] mt-0.5">{res.book.school.name}</p>
+                    <div className="mt-3">
+                      <Badge variant="orange">
+                        <Bell size={11} />
+                        {res.notifiedAt ? "Verfügbar — bitte abholen" : "Wartet auf Verfügbarkeit"}
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-[#C7C7CC] mt-2">
+                      Reserviert am {formatDate(res.createdAt)}
+                    </p>
+                  </div>
+                  <ReserveButton bookId={res.book.id} reservationId={res.id} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Past loans */}
       {pastLoans.length > 0 && (

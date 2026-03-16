@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { sendLoanConfirmationEmail } from "@/lib/email";
 import { addDays } from "date-fns";
 
 export async function GET(req: NextRequest) {
@@ -129,13 +130,26 @@ export async function POST(req: NextRequest) {
       notes: notes || null,
     },
     include: {
-      book: { select: { title: true, author: true } },
+      book: { select: { title: true, author: true, school: { select: { name: true } } } },
       user: { select: { name: true, email: true } },
     },
   });
 
   // Schedule reminders
   await scheduleReminders(loan.id, due);
+
+  // Send confirmation email (non-blocking)
+  if (loan.user.email) {
+    sendLoanConfirmationEmail({
+      to: loan.user.email,
+      userName: loan.user.name ?? loan.user.email,
+      bookTitle: loan.book.title,
+      bookAuthor: loan.book.author,
+      borrowedAt: loan.borrowedAt,
+      dueDate: due,
+      schoolName: loan.book.school.name,
+    }).catch((err) => console.error("Confirmation email failed:", err));
+  }
 
   return NextResponse.json(loan, { status: 201 });
 }
