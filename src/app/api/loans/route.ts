@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { sendLoanConfirmationEmail } from "@/lib/email";
-import { addDays } from "date-fns";
+import { addDays, startOfDay } from "date-fns";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -154,13 +154,20 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(loan, { status: 201 });
 }
 
+function reminderDate(base: Date, days: number): Date {
+  // Normalize to 06:00 UTC so the 08:00 UTC cron (window end 09:00) always catches it
+  const d = startOfDay(addDays(base, days));
+  d.setUTCHours(6, 0, 0, 0);
+  return d;
+}
+
 async function scheduleReminders(loanId: string, dueDate: Date) {
   const reminders = [
-    { type: "THREE_DAYS_BEFORE" as const, date: addDays(dueDate, -3) },
-    { type: "ONE_DAY_BEFORE" as const, date: addDays(dueDate, -1) },
-    { type: "DUE_TODAY" as const, date: dueDate },
-    { type: "ONE_DAY_OVERDUE" as const, date: addDays(dueDate, 1) },
-    { type: "ONE_WEEK_OVERDUE" as const, date: addDays(dueDate, 7) },
+    { type: "THREE_DAYS_BEFORE" as const, date: reminderDate(dueDate, -3) },
+    { type: "ONE_DAY_BEFORE" as const, date: reminderDate(dueDate, -1) },
+    { type: "DUE_TODAY" as const, date: reminderDate(dueDate, 0) },
+    { type: "ONE_DAY_OVERDUE" as const, date: reminderDate(dueDate, 1) },
+    { type: "ONE_WEEK_OVERDUE" as const, date: reminderDate(dueDate, 7) },
   ];
 
   const now = new Date();
