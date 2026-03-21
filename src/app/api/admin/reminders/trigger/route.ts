@@ -35,7 +35,7 @@ export async function POST() {
   const loansWithoutReminders = await prisma.loan.findMany({
     where: {
       ...loanFilter,
-      reminders: { none: { status: "PENDING" } },
+      reminders: { none: {} },
     },
     include: {
       book: { select: { title: true, author: true, school: { select: { name: true } } } },
