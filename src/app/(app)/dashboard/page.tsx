@@ -90,7 +90,7 @@ export default async function DashboardPage() {
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* My active loans */}
-        <div className="card p-6">
+        <div className="card p-6 min-w-0 overflow-hidden">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-[17px] font-semibold text-[#1C1C1E]">
               Meine Ausleihen
@@ -166,7 +166,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Recently added books */}
-        <div className="card p-6">
+        <div className="card p-6 min-w-0 overflow-hidden">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-[17px] font-semibold text-[#1C1C1E]">
               Neue Bücher
