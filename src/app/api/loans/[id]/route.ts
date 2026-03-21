@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { sendReservationAvailableEmail, sendLoanExtensionEmail } from "@/lib/email";
+import { sendReservationAvailableEmail, sendLoanExtensionEmail, sendLoanReturnEmail } from "@/lib/email";
 
 export async function PATCH(
   req: NextRequest,
@@ -70,6 +70,17 @@ export async function PATCH(
         bookId: loan.bookId,
         schoolName: firstReservation.book.school.name,
       }).catch((err) => console.error("Reservation email failed:", err));
+    }
+
+    if (loan.user.email) {
+      sendLoanReturnEmail({
+        to: loan.user.email,
+        userName: loan.user.name ?? loan.user.email,
+        bookTitle: loan.book.title,
+        bookAuthor: loan.book.author,
+        returnedAt: updated.returnedAt!,
+        schoolName: loan.book.school.name,
+      }).catch((err) => console.error("Return email failed:", err));
     }
 
     return NextResponse.json(updated);
