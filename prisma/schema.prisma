@@ -136,11 +136,12 @@ model Loan {
   id         String     @id @default(cuid())
   bookId     String
   userId     String
-  borrowedAt DateTime   @default(now())
-  dueDate    DateTime
-  returnedAt DateTime?
-  status     LoanStatus @default(ACTIVE)
-  notes      String?
+  borrowedAt  DateTime   @default(now())
+  dueDate     DateTime
+  returnedAt  DateTime?
+  status      LoanStatus @default(ACTIVE)
+  notes       String?
+  extensions  Int        @default(0)
 
   book      Book       @relation(fields: [bookId], references: [id])
   user      User       @relation(fields: [userId], references: [id])

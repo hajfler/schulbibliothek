@@ -82,10 +82,55 @@ export async function PATCH(
       data: { dueDate: newDueDate, status: "ACTIVE" },
     });
 
-    // Cancel old pending reminders and create new ones
     await prisma.reminder.deleteMany({
       where: { loanId: id, status: "PENDING" },
     });
+
+    return NextResponse.json(updated);
+  }
+
+  if (action === "selfExtend" && isOwner) {
+    if (loan.status === "OVERDUE") {
+      return NextResponse.json(
+        { error: "Überfällige Ausleihen können nicht verlängert werden. Bitte kontaktiere die Bibliothek." },
+        { status: 409 }
+      );
+    }
+    if (loan.extensions >= 1) {
+      return NextResponse.json(
+        { error: "Eine Ausleihe kann nur einmal verlängert werden." },
+        { status: 409 }
+      );
+    }
+
+    const newDueDate = new Date(loan.dueDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+    const updated = await prisma.loan.update({
+      where: { id },
+      data: { dueDate: newDueDate, extensions: { increment: 1 } },
+    });
+
+    // Reset reminders for new due date
+    await prisma.reminder.deleteMany({ where: { loanId: id, status: "PENDING" } });
+    const now = new Date();
+    const reminderDates = [
+      { type: "THREE_DAYS_BEFORE" as const, offset: -3 },
+      { type: "ONE_DAY_BEFORE" as const, offset: -1 },
+      { type: "DUE_TODAY" as const, offset: 0 },
+      { type: "ONE_DAY_OVERDUE" as const, offset: 1 },
+      { type: "ONE_WEEK_OVERDUE" as const, offset: 7 },
+    ].map(({ type, offset }) => {
+      const d = new Date(newDueDate);
+      d.setDate(d.getDate() + offset);
+      d.setUTCHours(6, 0, 0, 0);
+      return { type, date: d };
+    }).filter((r) => r.date > now);
+
+    if (reminderDates.length > 0) {
+      await prisma.reminder.createMany({
+        data: reminderDates.map((r) => ({ loanId: id, type: r.type, scheduledAt: r.date })),
+      });
+    }
 
     return NextResponse.json(updated);
   }

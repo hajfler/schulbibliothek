@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { formatDate, getDaysUntilDue } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ReturnBookButton } from "@/components/loans/return-button";
+import { ExtendLoanButton } from "@/components/loans/extend-button";
 import { BookOpen, Clock, CheckCircle, AlertCircle, BookMarked, Bell } from "lucide-react";
 import Link from "next/link";
 import { ReserveButton } from "@/components/books/reserve-button";
@@ -151,8 +152,16 @@ export default async function MyLoansPage() {
                       </div>
                     </div>
 
-                    {/* Return button */}
-                    <ReturnBookButton loanId={loan.id} bookTitle={loan.book.title} />
+                    {/* Actions */}
+                    <div className="flex flex-col gap-2 flex-shrink-0">
+                      <ReturnBookButton loanId={loan.id} bookTitle={loan.book.title} />
+                      <ExtendLoanButton
+                        loanId={loan.id}
+                        dueDate={loan.dueDate}
+                        extensions={loan.extensions}
+                        isOverdue={isOverdue}
+                      />
+                    </div>
                   </div>
                 </div>
               );
