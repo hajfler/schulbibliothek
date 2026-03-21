@@ -46,7 +46,6 @@ export async function POST() {
   const dueReminders = await prisma.reminder.findMany({
     where: {
       status: "PENDING",
-      scheduledAt: { lte: now },
       loan: loanFilter,
     },
     include: {
