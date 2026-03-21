@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { sendReservationAvailableEmail } from "@/lib/email";
+import { sendReservationAvailableEmail, sendLoanExtensionEmail } from "@/lib/email";
 
 export async function PATCH(
   req: NextRequest,
@@ -19,7 +19,7 @@ export async function PATCH(
   const loan = await prisma.loan.findUnique({
     where: { id },
     include: {
-      book: { select: { title: true, author: true, school: { select: { name: true } } } },
+      book: { select: { title: true, author: true, school: { select: { name: true, address: true } } } },
       user: { select: { name: true, email: true } },
     },
   });
@@ -130,6 +130,18 @@ export async function PATCH(
       await prisma.reminder.createMany({
         data: reminderDates.map((r) => ({ loanId: id, type: r.type, scheduledAt: r.date })),
       });
+    }
+
+    if (loan.user.email) {
+      sendLoanExtensionEmail({
+        to: loan.user.email,
+        userName: loan.user.name ?? loan.user.email,
+        bookTitle: loan.book.title,
+        bookAuthor: loan.book.author,
+        newDueDate: newDueDate,
+        schoolName: loan.book.school.name,
+        loanId: id,
+      }).catch((err) => console.error("Extension email failed:", err));
     }
 
     return NextResponse.json(updated);
