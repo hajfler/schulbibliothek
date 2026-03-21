@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
       notes: notes || null,
     },
     include: {
-      book: { select: { title: true, author: true, school: { select: { name: true } } } },
+      book: { select: { title: true, author: true, school: { select: { name: true, address: true } } } },
       user: { select: { name: true, email: true } },
     },
   });
@@ -148,6 +148,7 @@ export async function POST(req: NextRequest) {
       borrowedAt: loan.borrowedAt,
       dueDate: due,
       schoolName: loan.book.school.name,
+      loanId: loan.id,
     }).catch((err) => console.error("Confirmation email failed:", err));
   }
 

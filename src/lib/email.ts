@@ -124,60 +124,6 @@ export async function sendReminderEmail(data: ReminderEmailData) {
   });
 }
 
-// ─── Calendar helpers ─────────────────────────────────────────────────────────
-
-function icsDateOnly(date: Date): string {
-  return date.toISOString().split("T")[0].replace(/-/g, "");
-}
-
-function icsDateTimeUtc(date: Date): string {
-  return date.toISOString().replace(/[-:.]/g, "").slice(0, 15) + "Z";
-}
-
-function generateIcs(bookTitle: string, bookAuthor: string, dueDate: Date, schoolName: string): string {
-  const start = icsDateOnly(dueDate);
-  // DTEND is exclusive for all-day events → next day
-  const end = icsDateOnly(new Date(dueDate.getTime() + 24 * 60 * 60 * 1000));
-  const stamp = icsDateTimeUtc(new Date());
-  const uid = `loan-${stamp}-${Math.random().toString(36).slice(2)}@schulbibliothek`;
-  const description = `"${bookTitle}" von ${bookAuthor} in der Schulbibliothek ${schoolName} zurückgeben.`;
-
-  return [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//Schulbibliothek Dietlikon//DE",
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
-    "BEGIN:VEVENT",
-    `UID:${uid}`,
-    `DTSTAMP:${stamp}`,
-    `DTSTART;VALUE=DATE:${start}`,
-    `DTEND;VALUE=DATE:${end}`,
-    `SUMMARY:Buch zurückgeben: ${bookTitle}`,
-    `DESCRIPTION:${description}`,
-    `LOCATION:${schoolName}`,
-    "BEGIN:VALARM",
-    "TRIGGER:-P3D",
-    "ACTION:DISPLAY",
-    "DESCRIPTION:Erinnerung: Buch zurückgeben",
-    "END:VALARM",
-    "END:VEVENT",
-    "END:VCALENDAR",
-  ].join("\r\n");
-}
-
-function googleCalendarUrl(bookTitle: string, dueDate: Date, schoolName: string): string {
-  const start = icsDateOnly(dueDate);
-  const end = icsDateOnly(new Date(dueDate.getTime() + 24 * 60 * 60 * 1000));
-  const params = new URLSearchParams({
-    action: "TEMPLATE",
-    text: `Buch zurückgeben: ${bookTitle}`,
-    dates: `${start}/${end}`,
-    location: schoolName,
-  });
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
-
 // ─── Loan Confirmation ───────────────────────────────────────────────────────
 
 interface LoanConfirmationData {
@@ -188,10 +134,12 @@ interface LoanConfirmationData {
   borrowedAt: Date;
   dueDate: Date;
   schoolName: string;
+  loanId: string;
 }
 
 export async function sendLoanConfirmationEmail(data: LoanConfirmationData) {
-  const { to, userName, bookTitle, bookAuthor, borrowedAt, dueDate, schoolName } = data;
+  const { to, userName, bookTitle, bookAuthor, borrowedAt, dueDate, schoolName, loanId } = data;
+  const calendarUrl = `${process.env.NEXTAUTH_URL}/api/loans/${loanId}/calendar`;
 
   const dueDateFormatted = dueDate.toLocaleDateString("de-CH", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
@@ -243,17 +191,10 @@ export async function sendLoanConfirmationEmail(data: LoanConfirmationData) {
                 </a>
               </div>
 
-              <!-- Calendar buttons -->
               <div style="text-align:center;">
-                <p style="color:#8E8E93;font-size:13px;margin:0 0 12px;">Rückgabetermin zum Kalender hinzufügen:</p>
-                <a href="${googleCalendarUrl(bookTitle, dueDate, schoolName)}"
-                   target="_blank"
-                   style="display:inline-block;background-color:#34A853;color:#FFFFFF;font-size:14px;font-weight:600;padding:10px 20px;border-radius:10px;text-decoration:none;margin:0 4px;">
-                  Google Kalender
-                </a>
-                <a href="cid:calendar.ics"
-                   style="display:inline-block;background-color:#0078D4;color:#FFFFFF;font-size:14px;font-weight:600;padding:10px 20px;border-radius:10px;text-decoration:none;margin:0 4px;">
-                  Outlook / Apple Kalender
+                <a href="${calendarUrl}"
+                   style="display:inline-block;background-color:#F2F2F7;color:#1C1C1E;font-size:14px;font-weight:600;padding:10px 24px;border-radius:10px;text-decoration:none;">
+                  📅 Zum Kalender hinzufügen
                 </a>
               </div>
             </td>
@@ -273,21 +214,11 @@ export async function sendLoanConfirmationEmail(data: LoanConfirmationData) {
 </html>
   `.trim();
 
-  const icsContent = generateIcs(bookTitle, bookAuthor, dueDate, schoolName);
-
   await transporter.sendMail({
     from: `"Schulbibliothek ${schoolName}" <${process.env.SMTP_FROM ?? process.env.SMTP_USER}>`,
     to,
     subject,
     html,
-    attachments: [
-      {
-        filename: "Rueckgabe.ics",
-        content: icsContent,
-        contentType: "text/calendar; charset=utf-8; method=PUBLISH",
-        cid: "calendar.ics",
-      },
-    ],
   });
 }
 
