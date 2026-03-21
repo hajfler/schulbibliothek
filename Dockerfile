@@ -9,9 +9,12 @@ RUN npm ci --legacy-peer-deps
 
 # Builder
 FROM base AS builder
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl curl
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Download favicon (kept out of git repo)
+RUN curl -fsSL "https://www.schule-dietlikon.ch/inc/customers/dietlikon/images/favicons/favicon.ico" -o src/app/favicon.ico
 
 # Generate Prisma client
 RUN npx prisma generate
