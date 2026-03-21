@@ -87,7 +87,58 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
         <UserSearchInput />
       </div>
 
-      <div className="card overflow-hidden">
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-3">
+        {users.map((user) => (
+          <div key={user.id} className="card p-4">
+            <div className="flex items-center gap-3 mb-3">
+              {user.image ? (
+                <img src={user.image} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-[#007AFF] flex items-center justify-center text-white text-[14px] font-semibold flex-shrink-0">
+                  {user.name?.[0]?.toUpperCase() ?? "?"}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-semibold text-[#1C1C1E] truncate">{user.name ?? "Unbekannt"}</p>
+                <a href={`mailto:${user.email}`} className="flex items-center gap-1 text-[12px] text-[#007AFF]">
+                  <Mail size={10} /><span className="truncate">{user.email}</span>
+                </a>
+              </div>
+              <Badge variant={roleColors[user.role]}>{roleLabels[user.role]}</Badge>
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[#8E8E93] mb-3">
+              {user.school ? (
+                <span>{user.school.name}</span>
+              ) : (
+                <span className="text-[#FF3B30] font-medium">Nicht zugewiesen</span>
+              )}
+              <span>Dabei seit {formatDate(user.createdAt)}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <UserLoansModal
+                userId={user.id}
+                userName={user.name ?? user.email ?? ""}
+                userEmail={user.email ?? ""}
+                loanCount={user._count.loans}
+              />
+              {user.id !== session.user.id && (
+                <UserRoleSelector
+                  userId={user.id}
+                  currentRole={user.role}
+                  currentSchoolId={user.school?.id ?? null}
+                  memberSchoolIds={user.schoolMemberships.map((m) => m.schoolId)}
+                  isAdmin={isAdmin}
+                  schools={schools}
+                />
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block card overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="border-b border-[#F2F2F7]">
