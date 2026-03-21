@@ -55,9 +55,9 @@ export function BooksFilter({ schools = [] }: { schools?: School[] }) {
   const currentSchool = searchParams.get("school") ?? "";
 
   return (
-    <div className="flex flex-wrap gap-3 items-center">
+    <div className="flex flex-col gap-3">
       {/* Search */}
-      <div className="relative flex-1 min-w-[200px] max-w-sm">
+      <div className="relative w-full max-w-sm">
         <Search
           size={16}
           className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8E8E93] pointer-events-none"
@@ -72,7 +72,7 @@ export function BooksFilter({ schools = [] }: { schools?: School[] }) {
       </div>
 
       {/* Type filter */}
-      <div className="flex gap-1.5 bg-white border border-[#C6C6C8] rounded-xl p-1">
+      <div className="flex flex-wrap gap-1.5 bg-white border border-[#C6C6C8] rounded-xl p-1">
         {typeOptions.slice(0, 4).map((opt) => (
           <button
             key={opt.value}
@@ -91,7 +91,7 @@ export function BooksFilter({ schools = [] }: { schools?: School[] }) {
 
       {/* School filter (staff only) */}
       {schools.length > 1 && (
-        <div className="flex gap-1.5 bg-white border border-[#C6C6C8] rounded-xl p-1">
+        <div className="flex flex-wrap gap-1.5 bg-white border border-[#C6C6C8] rounded-xl p-1">
           <button
             onClick={() => updateFilter("school", "")}
             className={cn(
@@ -121,7 +121,7 @@ export function BooksFilter({ schools = [] }: { schools?: School[] }) {
       )}
 
       {/* Availability filter */}
-      <div className="flex gap-1.5 bg-white border border-[#C6C6C8] rounded-xl p-1">
+      <div className="flex flex-wrap gap-1.5 bg-white border border-[#C6C6C8] rounded-xl p-1">
         {availabilityOptions.map((opt) => (
           <button
             key={opt.value}

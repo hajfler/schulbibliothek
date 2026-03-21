@@ -16,7 +16,7 @@ export async function AppLayout({ children }: { children: React.ReactNode }) {
           <Sidebar session={session} />
         </div>
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden">
           {/* Mobile header */}
           <div className="md:hidden sticky top-0 z-30 bg-white border-b border-[#F2F2F7] px-4 py-3 flex items-center">
             <img src="/logo.svg" alt="Schule Dietlikon" className="h-6 w-auto" />
