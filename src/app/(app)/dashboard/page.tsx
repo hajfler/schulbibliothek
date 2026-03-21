@@ -88,7 +88,7 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-6 mx-2 lg:mx-0">
         {/* My active loans */}
         <div className="card p-6">
           <div className="flex items-center justify-between mb-5">
