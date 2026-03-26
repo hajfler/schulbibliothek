@@ -5,7 +5,9 @@ import { join } from "path";
 import { existsSync, mkdirSync } from "fs";
 
 function getUploadsDir() {
-  return process.env.COVER_UPLOAD_DIR ?? join(process.cwd(), "uploads", "covers");
+  return process.env.COVER_UPLOAD_DIR ?? (process.env.NODE_ENV === "production"
+    ? "/tmp/covers"
+    : join(process.cwd(), "public", "covers"));
 }
 
 export async function POST(req: NextRequest) {

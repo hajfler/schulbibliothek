@@ -4,7 +4,9 @@ import { join, extname } from "path";
 import { existsSync } from "fs";
 
 function getUploadsDir() {
-  return process.env.COVER_UPLOAD_DIR ?? join(process.cwd(), "uploads", "covers");
+  return process.env.COVER_UPLOAD_DIR ?? (process.env.NODE_ENV === "production"
+    ? "/tmp/covers"
+    : join(process.cwd(), "public", "covers"));
 }
 
 const MIME_TYPES: Record<string, string> = {
