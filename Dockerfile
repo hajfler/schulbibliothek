@@ -25,7 +25,7 @@ RUN npm run build
 
 # Runner
 FROM base AS runner
-RUN apk add --no-cache openssl curl
+RUN apk add --no-cache openssl curl su-exec
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -47,10 +47,8 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 
-# Startup script
+# Startup script (runs as root to fix volume permissions, drops to nextjs via su-exec)
 COPY --chmod=755 docker-entrypoint.sh ./docker-entrypoint.sh
-
-USER nextjs
 
 EXPOSE 3000
 ENV PORT=3000
