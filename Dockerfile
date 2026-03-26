@@ -39,8 +39,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Ensure covers directory is writable by the nextjs user
-RUN mkdir -p /app/public/covers && chown nextjs:nodejs /app/public/covers
+# Create writable uploads directory for book covers
+RUN mkdir -p /app/uploads/covers && chown -R nextjs:nodejs /app/uploads
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.bin ./node_modules/.bin
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma

@@ -82,7 +82,7 @@ export function BookForm({ initialData, schoolId, schools = [], mode }: BookForm
   const [uploading, setUploading] = React.useState(false);
   const [errors, setErrors] = React.useState<Partial<BookFormData>>({});
   const [coverMode, setCoverMode] = React.useState<"url" | "upload">(
-    initialData?.coverUrl?.startsWith("/covers/") ? "upload" : "url"
+    initialData?.coverUrl && (initialData.coverUrl.startsWith("/api/covers/") || initialData.coverUrl.startsWith("/covers/")) ? "upload" : "url"
   );
   const { addToast } = useToast();
   const router = useRouter();
@@ -122,8 +122,11 @@ export function BookForm({ initialData, schoolId, schools = [], mode }: BookForm
     }
   };
 
+  const isUploadedCover = (url: string) =>
+    url.startsWith("/api/covers/") || url.startsWith("/covers/");
+
   const deleteUploadedCover = async (url: string) => {
-    const filename = url.replace("/covers/", "");
+    const filename = url.replace("/api/covers/", "").replace("/covers/", "");
     try {
       await fetch(`/api/upload/cover?filename=${encodeURIComponent(filename)}`, { method: "DELETE" });
     } catch {
@@ -136,7 +139,7 @@ export function BookForm({ initialData, schoolId, schools = [], mode }: BookForm
     if (!file) return;
     setUploading(true);
     try {
-      if (data.coverUrl?.startsWith("/covers/")) {
+      if (data.coverUrl && isUploadedCover(data.coverUrl)) {
         await deleteUploadedCover(data.coverUrl);
       }
       const formData = new FormData();
@@ -159,7 +162,7 @@ export function BookForm({ initialData, schoolId, schools = [], mode }: BookForm
   };
 
   const handleCoverDelete = async () => {
-    if (!data.coverUrl?.startsWith("/covers/")) return;
+    if (!data.coverUrl || !isUploadedCover(data.coverUrl)) return;
     await deleteUploadedCover(data.coverUrl);
     set("coverUrl", "");
   };
@@ -368,7 +371,7 @@ export function BookForm({ initialData, schoolId, schools = [], mode }: BookForm
                   alt="Cover Vorschau"
                   className="w-20 h-28 object-cover rounded-xl shadow-sm"
                 />
-                {data.coverUrl.startsWith("/covers/") && (
+                {isUploadedCover(data.coverUrl) && (
                   <button
                     type="button"
                     onClick={handleCoverDelete}
@@ -447,7 +450,7 @@ export function BookForm({ initialData, schoolId, schools = [], mode }: BookForm
                     disabled={uploading}
                   />
                 </label>
-                {data.coverUrl?.startsWith("/covers/") && (
+                {data.coverUrl && isUploadedCover(data.coverUrl) && (
                   <button
                     type="button"
                     onClick={handleCoverDelete}

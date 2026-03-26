@@ -4,7 +4,9 @@ import { writeFile, unlink } from "fs/promises";
 import { join } from "path";
 import { existsSync, mkdirSync } from "fs";
 
-const COVERS_DIR = join(process.cwd(), "public", "covers");
+function getUploadsDir() {
+  return process.env.COVER_UPLOAD_DIR ?? join(process.cwd(), "uploads", "covers");
+}
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -27,18 +29,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Datei zu gross (max. 5 MB)" }, { status: 400 });
   }
 
-  if (!existsSync(COVERS_DIR)) {
-    mkdirSync(COVERS_DIR, { recursive: true });
+  const uploadsDir = getUploadsDir();
+  if (!existsSync(uploadsDir)) {
+    mkdirSync(uploadsDir, { recursive: true });
   }
 
   const ext = (file.name.split(".").pop() ?? "jpg").toLowerCase();
   const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-  const filepath = join(COVERS_DIR, filename);
+  const filepath = join(uploadsDir, filename);
 
   const bytes = await file.arrayBuffer();
   await writeFile(filepath, Buffer.from(bytes));
 
-  return NextResponse.json({ url: `/covers/${filename}` });
+  return NextResponse.json({ url: `/api/covers/${filename}` });
 }
 
 export async function DELETE(req: NextRequest) {
@@ -49,13 +52,12 @@ export async function DELETE(req: NextRequest) {
 
   const filename = req.nextUrl.searchParams.get("filename");
 
-  // Prevent path traversal
   if (!filename || filename.includes("/") || filename.includes("\\") || filename.includes("..")) {
     return NextResponse.json({ error: "Ungültiger Dateiname" }, { status: 400 });
   }
 
   try {
-    await unlink(join(COVERS_DIR, filename));
+    await unlink(join(getUploadsDir(), filename));
   } catch {
     // File may not exist — ignore
   }
