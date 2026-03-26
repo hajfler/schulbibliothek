@@ -8,7 +8,7 @@ import { Select } from "@/components/ui/select";
 import { ISBNScanner } from "./isbn-scanner";
 import { useToast } from "@/components/ui/toast";
 import {
-  BookOpen, Search, Loader2, Image as ImageIcon, Hash,
+  BookOpen, Search, Loader2, Image as ImageIcon, Hash, Upload, Trash2, X,
 } from "lucide-react";
 
 const TYPE_OPTIONS = [
@@ -79,7 +79,11 @@ export function BookForm({ initialData, schoolId, schools = [], mode }: BookForm
   const [selectedSchoolId, setSelectedSchoolId] = React.useState<string>(schoolId ?? schools[0]?.id ?? "");
   const [loading, setLoading] = React.useState(false);
   const [isbnLoading, setIsbnLoading] = React.useState(false);
+  const [uploading, setUploading] = React.useState(false);
   const [errors, setErrors] = React.useState<Partial<BookFormData>>({});
+  const [coverMode, setCoverMode] = React.useState<"url" | "upload">(
+    initialData?.coverUrl?.startsWith("/covers/") ? "upload" : "url"
+  );
   const { addToast } = useToast();
   const router = useRouter();
 
@@ -116,6 +120,48 @@ export function BookForm({ initialData, schoolId, schools = [], mode }: BookForm
     } finally {
       setIsbnLoading(false);
     }
+  };
+
+  const deleteUploadedCover = async (url: string) => {
+    const filename = url.replace("/covers/", "");
+    try {
+      await fetch(`/api/upload/cover?filename=${encodeURIComponent(filename)}`, { method: "DELETE" });
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      if (data.coverUrl?.startsWith("/covers/")) {
+        await deleteUploadedCover(data.coverUrl);
+      }
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload/cover", { method: "POST", body: formData });
+      if (!res.ok) {
+        const err = await res.json();
+        addToast(err.error ?? "Fehler beim Hochladen", "error");
+        return;
+      }
+      const { url } = await res.json();
+      set("coverUrl", url);
+      addToast("Cover hochgeladen", "success");
+    } catch {
+      addToast("Fehler beim Hochladen", "error");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleCoverDelete = async () => {
+    if (!data.coverUrl?.startsWith("/covers/")) return;
+    await deleteUploadedCover(data.coverUrl);
+    set("coverUrl", "");
   };
 
   const validate = (): boolean => {
@@ -313,25 +359,106 @@ export function BookForm({ initialData, schoolId, schools = [], mode }: BookForm
         </h2>
 
         <div className="flex gap-4 items-start">
-          {data.coverUrl ? (
-            <img
-              src={data.coverUrl}
-              alt="Cover Vorschau"
-              className="w-20 h-28 object-cover rounded-xl shadow-sm flex-shrink-0"
-            />
-          ) : (
-            <div className="w-20 h-28 bg-[#F2F2F7] rounded-xl flex items-center justify-center flex-shrink-0">
-              <ImageIcon size={24} className="text-[#C7C7CC]" />
+          {/* Cover preview */}
+          <div className="relative flex-shrink-0">
+            {data.coverUrl ? (
+              <>
+                <img
+                  src={data.coverUrl}
+                  alt="Cover Vorschau"
+                  className="w-20 h-28 object-cover rounded-xl shadow-sm"
+                />
+                {data.coverUrl.startsWith("/covers/") && (
+                  <button
+                    type="button"
+                    onClick={handleCoverDelete}
+                    title="Cover löschen"
+                    className="absolute -top-2 -right-2 w-5 h-5 bg-[#FF3B30] rounded-full flex items-center justify-center shadow"
+                  >
+                    <X size={10} className="text-white" />
+                  </button>
+                )}
+              </>
+            ) : (
+              <div className="w-20 h-28 bg-[#F2F2F7] rounded-xl flex items-center justify-center">
+                <ImageIcon size={24} className="text-[#C7C7CC]" />
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 space-y-3">
+            {/* Mode toggle */}
+            <div className="flex bg-[#F2F2F7] rounded-xl p-1 gap-1">
+              <button
+                type="button"
+                onClick={() => setCoverMode("url")}
+                className={`flex-1 text-[13px] font-medium py-1.5 rounded-lg transition-all ${
+                  coverMode === "url"
+                    ? "bg-white shadow-sm text-[#1C1C1E]"
+                    : "text-[#8E8E93]"
+                }`}
+              >
+                URL
+              </button>
+              <button
+                type="button"
+                onClick={() => setCoverMode("upload")}
+                className={`flex-1 text-[13px] font-medium py-1.5 rounded-lg transition-all ${
+                  coverMode === "upload"
+                    ? "bg-white shadow-sm text-[#1C1C1E]"
+                    : "text-[#8E8E93]"
+                }`}
+              >
+                Hochladen
+              </button>
             </div>
-          )}
-          <div className="flex-1">
-            <Input
-              label="Cover URL"
-              value={data.coverUrl}
-              onChange={(e) => set("coverUrl", e.target.value)}
-              placeholder="https://..."
-              hint="URL zum Buchcover-Bild (wird automatisch gefüllt)"
-            />
+
+            {coverMode === "url" ? (
+              <Input
+                label="Cover URL"
+                value={data.coverUrl}
+                onChange={(e) => set("coverUrl", e.target.value)}
+                placeholder="https://..."
+                hint="URL zum Buchcover-Bild (wird automatisch gefüllt)"
+              />
+            ) : (
+              <div className="space-y-2">
+                <label className="text-[13px] font-semibold text-[#3A3A3C] uppercase tracking-wide block">
+                  Bild hochladen
+                </label>
+                <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl transition-colors ${uploading ? "border-[#007AFF] bg-[#F2F2F7]" : "border-[#C6C6C8] cursor-pointer hover:border-[#007AFF] hover:bg-[#F2F2F7]"}`}>
+                  {uploading ? (
+                    <div className="flex items-center gap-2 text-[13px] text-[#007AFF]">
+                      <Loader2 size={16} className="animate-spin" />
+                      Wird hochgeladen...
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1">
+                      <Upload size={20} className="text-[#8E8E93]" />
+                      <span className="text-[13px] text-[#8E8E93]">Klicken oder Bild ablegen</span>
+                      <span className="text-[11px] text-[#C7C7CC]">JPG, PNG, WebP – max. 5 MB</span>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleCoverUpload}
+                    disabled={uploading}
+                  />
+                </label>
+                {data.coverUrl?.startsWith("/covers/") && (
+                  <button
+                    type="button"
+                    onClick={handleCoverDelete}
+                    className="flex items-center gap-1.5 text-[13px] text-[#FF3B30] hover:opacity-75 transition-opacity"
+                  >
+                    <Trash2 size={13} />
+                    Bild löschen
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
