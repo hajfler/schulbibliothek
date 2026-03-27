@@ -1,8 +1,8 @@
 import NextAuth from "next-auth";
-import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/db";
 import type { Role } from "@prisma/client";
+import { authConfig } from "@/auth.config";
 
 declare module "next-auth" {
   interface Session {
@@ -17,32 +17,37 @@ declare module "next-auth" {
   }
 }
 
+declare module "next-auth/jwt" {
+  interface JWT {
+    id?: string;
+    role?: Role;
+    schoolId?: string | null;
+  }
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(prisma),
   trustHost: true,
-  providers: [
-    MicrosoftEntraID({
-      clientId: process.env.AZURE_AD_CLIENT_ID!,
-      clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
-      issuer: `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID}/v2.0`,
-      authorization: {
-        params: {
-          scope: "openid profile email User.Read",
-        },
-      },
-    }),
-  ],
   callbacks: {
-    async session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
+    async jwt({ token, user }) {
+      // Runs on sign-in (user is set) — enrich token with DB data.
+      // Role changes in the DB take effect on next sign-in.
+      if (user?.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
           select: { role: true, schoolId: true },
         });
-        session.user.role = dbUser?.role ?? "USER";
-        session.user.schoolId = dbUser?.schoolId ?? null;
+        token.id = user.id;
+        token.role = dbUser?.role ?? "USER";
+        token.schoolId = dbUser?.schoolId ?? null;
       }
+      return token;
+    },
+    async session({ session, token }) {
+      session.user.id = token.id!;
+      session.user.role = token.role ?? "USER";
+      session.user.schoolId = token.schoolId ?? null;
       return session;
     },
   },
@@ -67,12 +72,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
       }
     },
-  },
-  pages: {
-    signIn: "/login",
-    error: "/login",
-  },
-  session: {
-    strategy: "database",
   },
 });

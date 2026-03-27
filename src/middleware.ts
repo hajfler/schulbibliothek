@@ -1,5 +1,10 @@
-import { auth } from "@/lib/auth";
+import NextAuth from "next-auth";
+import { authConfig } from "@/auth.config";
 import { NextResponse } from "next/server";
+
+// Use the edge-runtime-safe config (no Prisma) for the middleware.
+// The full auth (with PrismaAdapter) is only used in server-side route handlers.
+const { auth } = NextAuth(authConfig);
 
 // Simple in-memory rate limiter — adequate for single-instance Coolify deployments.
 // Replace with Redis-backed solution if the app scales to multiple instances.
@@ -19,7 +24,7 @@ function isRateLimited(ip: string): boolean {
   return false;
 }
 
-export default auth((req) => {
+export default auth(function middleware(req) {
   const { pathname } = req.nextUrl;
 
   // Rate-limit auth endpoints to slow down brute-force / credential stuffing.
