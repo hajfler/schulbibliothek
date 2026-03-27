@@ -28,7 +28,7 @@ const securityHeaders = [
   { key: "X-DNS-Prefetch-Control",    value: "on" },
   // Report-Only: violations are logged to the browser console, nothing breaks.
   // Switch to "Content-Security-Policy" once the report-only phase is clean.
-  { key: "Content-Security-Policy-Report-Only", value: csp },
+  { key: "Content-Security-Policy", value: csp },
 ];
 
 const nextConfig: NextConfig = {
