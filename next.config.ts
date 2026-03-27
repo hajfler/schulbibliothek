@@ -8,7 +8,7 @@ const csp = [
   // Tailwind CSS requires 'unsafe-inline' for utility styles.
   "style-src 'self' 'unsafe-inline'",
   // External image hosts mirrored from images.remotePatterns.
-  "img-src 'self' data: blob: https://covers.openlibrary.org https://books.google.com https://lh3.googleusercontent.com https://graph.microsoft.com",
+  "img-src 'self' data: blob: https://covers.openlibrary.org https://books.google.com https://lh3.googleusercontent.com https://graph.microsoft.com https://images.thalia.media",
   // Microsoft Entra ID OAuth redirect flow + NextAuth client session calls.
   "connect-src 'self' https://login.microsoftonline.com https://*.microsoft.com",
   "frame-src 'none'",
