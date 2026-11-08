@@ -24,7 +24,7 @@ export interface GraphUser {
   id: string;
   displayName: string | null;
   mail: string | null;
-  userPrincipalName: string;
+  userPrincipalName: string | null;
   accountEnabled: boolean | null;
 }
 
@@ -87,26 +87,23 @@ async function graphGetAll<T>(url: string, extraHeaders: Record<string, string> 
   return items;
 }
 
-/** Gruppen suchen (Anzeigename beginnt mit oder enthält den Suchbegriff). */
+/** Gruppen suchen: Anzeigename oder Beschreibung enthält den Suchbegriff (lokal gefiltert, ohne Gross-/Kleinschreibung). */
 export async function searchGroups(search: string): Promise<GraphGroup[]> {
   const params = new URLSearchParams({
     $select: "id,displayName,description,mail",
-    $top: "50",
+    $top: "999",
     $orderby: "displayName",
   });
-  const term = search.trim().replace(/"/g, "");
-  if (term) {
-    params.set("$search", `"displayName:${term}"`);
-  }
-  const groups = await graphGetAll<GraphGroup>(`${GRAPH}/groups?${params.toString()}`, {
-    ConsistencyLevel: "eventual",
-  });
-  return groups.map((g) => ({
-    id: g.id,
-    displayName: g.displayName,
-    description: g.description ?? null,
-    mail: g.mail ?? null,
-  }));
+  const groups = await graphGetAll<GraphGroup>(`${GRAPH}/groups?${params.toString()}`);
+  const term = search.trim().toLowerCase();
+  return groups
+    .filter((g) => !term || `${g.displayName ?? ""} ${g.description ?? ""}`.toLowerCase().includes(term))
+    .map((g) => ({
+      id: g.id,
+      displayName: g.displayName,
+      description: g.description ?? null,
+      mail: g.mail ?? null,
+    }));
 }
 
 /** Benutzer-Mitglieder einer Gruppe (transitiv, also inkl. verschachtelter Gruppen). */
@@ -123,7 +120,7 @@ export async function getGroupUserMembers(groupId: string): Promise<GraphUser[]>
     id: u.id,
     displayName: u.displayName ?? null,
     mail: u.mail ?? null,
-    userPrincipalName: u.userPrincipalName,
+    userPrincipalName: u.userPrincipalName ?? null,
     accountEnabled: u.accountEnabled ?? null,
   }));
 }

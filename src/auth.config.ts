@@ -24,4 +24,6 @@ export const authConfig = {
     error: "/login",
   },
   session: { strategy: "jwt" as const },
+  // Hinter dem Coolify-Proxy; ohne trustHost loggt die Middleware bei jedem /api/auth/session «UntrustedHost»
+  trustHost: true,
 } satisfies NextAuthConfig;

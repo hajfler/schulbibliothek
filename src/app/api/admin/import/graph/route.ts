@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
   const candidates = members
     .filter((m) => m.accountEnabled !== false)
     .map((m, i) => ({
-      email: (m.mail ?? m.userPrincipalName).toLowerCase().trim(),
+      email: (m.mail ?? m.userPrincipalName ?? "").toLowerCase().trim(),
       name: m.displayName,
       row: i + 1,
     }))
