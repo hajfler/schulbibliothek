@@ -13,6 +13,10 @@ export const authConfig = {
       authorization: {
         params: { scope: "openid profile email User.Read" },
       },
+      // Vorab importierte Benutzer (CSV aus M365, noch ohne verknüpftes Konto) werden beim
+      // ersten Login anhand der E-Mail verknüpft. Unkritisch, weil nur der Tenant der Schule
+      // authentifizieren kann; niemand kann dort eine fremde Adresse registrieren.
+      allowDangerousEmailAccountLinking: true,
     }),
   ],
   pages: {

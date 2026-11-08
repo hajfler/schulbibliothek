@@ -18,6 +18,27 @@ declare module "next-auth" {
 }
 
 
+/** Weist einem Benutzer ohne Schulhaus-Mitgliedschaften alle Schulhäuser zu (erstes als aktives). */
+async function assignSchoolsToUser(userId: string) {
+  const count = await prisma.userSchool.count({ where: { userId } });
+  if (count > 0) return;
+
+  const allSchools = await prisma.school.findMany({
+    select: { id: true },
+    orderBy: { name: "asc" },
+  });
+  if (allSchools.length === 0) return;
+
+  await prisma.userSchool.createMany({
+    data: allSchools.map((s) => ({ userId, schoolId: s.id })),
+    skipDuplicates: true,
+  });
+  await prisma.user.update({
+    where: { id: userId },
+    data: { schoolId: allSchools[0].id },
+  });
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma),
@@ -48,22 +69,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async createUser({ user }) {
       // Fires exactly once after the user row is committed to the DB
       if (!user.id) return;
-
-      const allSchools = await prisma.school.findMany({
-        select: { id: true },
-        orderBy: { name: "asc" },
-      });
-
-      if (allSchools.length > 0) {
-        await prisma.userSchool.createMany({
-          data: allSchools.map((s) => ({ userId: user.id!, schoolId: s.id })),
-          skipDuplicates: true,
-        });
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { schoolId: allSchools[0].id },
-        });
-      }
+      await assignSchoolsToUser(user.id);
+    },
+    async linkAccount({ user }) {
+      // Fires when the M365 account is linked to an existing (pre-imported) user
+      if (!user.id) return;
+      await assignSchoolsToUser(user.id);
     },
   },
 });

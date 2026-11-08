@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   BookOpen, LayoutDashboard, BookMarked, Users,
-  LogOut, Shield, BookCopy, ChevronDown, Tags,
+  LogOut, Shield, BookCopy, ChevronDown, Tags, Upload,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import type { Session } from "next-auth";
@@ -27,6 +27,7 @@ const adminItems = [
   { href: "/admin/categories", label: "Kategorien", icon: Tags },
   { href: "/admin/loans", label: "Alle Ausleihen", icon: BookMarked },
   { href: "/admin/users", label: "Benutzer", icon: Users },
+  { href: "/admin/import", label: "Benutzer importieren", icon: Upload, adminOnly: true },
   { href: "/admin/schools", label: "Schulhäuser", icon: Shield, adminOnly: true },
 ];
 
