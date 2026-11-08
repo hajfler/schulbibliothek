@@ -116,9 +116,11 @@ export default async function BooksPage({ searchParams }: PageProps) {
         )}
       </div>
 
-      {/* School switcher for users with multiple schools */}
+      {/* Schulhaus-Umschalter nur mobil; am Desktop sitzt er am Fuss der Navigation */}
       {!isStaff && userSchools.length > 1 && (
-        <SchoolSwitcher schools={userSchools} activeSchoolId={session.user.schoolId ?? null} />
+        <div className="md:hidden">
+          <SchoolSwitcher schools={userSchools} activeSchoolId={session.user.schoolId ?? null} />
+        </div>
       )}
 
       {/* Filter */}

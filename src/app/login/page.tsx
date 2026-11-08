@@ -11,7 +11,8 @@ export default async function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-10">
-          <img src="/logo.svg" alt="Schule Dietlikon" className="h-10 w-auto mx-auto mb-5" />
+          <img src="/logo.svg" alt="Schule Dietlikon" className="h-10 w-auto mx-auto mb-5 logo-light-mode" />
+          <img src="/logo-dark.svg" alt="Schule Dietlikon" className="h-10 w-auto mx-auto mb-5 logo-dark-mode" />
           <h1 className="text-[28px] font-bold text-[#1C1C1E] tracking-tight">
             Bibliothek
           </h1>

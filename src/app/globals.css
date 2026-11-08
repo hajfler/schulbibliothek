@@ -16,8 +16,103 @@
   --orange: #FF9500;
   --yellow: #FFCC00;
   --purple: #AF52DE;
+  --red-surface: #FFF8F8;
+  --red-surface-hover: #FFF0EF;
+  --red-border: #FFE9E9;
   --sidebar-width: 240px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Dunkles Farbschema (Klasse «dark» am <html>, gesetzt von next-themes)
+   Die Oberflächen sind grossteils mit festen Hex-Klassen gebaut. Statt alle
+   Stellen umzuschreiben, werden die verwendeten Klassen hier im dunklen Schema
+   auf die Variablen umgelenkt. Unlayered CSS schlägt Tailwinds utilities-Layer.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.dark {
+  --background: #1C1C1E;
+  --surface: #2C2C2E;
+  --surface-secondary: #3A3A3C;
+  --foreground: #F2F2F7;
+  --foreground-secondary: #EBEBF5;
+  --foreground-tertiary: #C7C7CC;
+  --separator: #48484A;
+  --separator-opaque: rgba(255,255,255,0.10);
+  --red-surface: rgba(255,59,48,0.12);
+  --red-surface-hover: rgba(255,59,48,0.18);
+  --red-border: rgba(255,59,48,0.28);
+  color-scheme: dark;
+}
+.dark .card { box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+
+/* Flächen */
+.dark .bg-white,
+.dark .bg-\[\#F9F9FB\],
+.dark .bg-\[\#FAFAFC\] { background-color: var(--surface); }
+.dark .bg-\[\#F2F2F7\],
+.dark .hover\:bg-\[\#F2F2F7\]:hover,
+.dark .hover\:bg-\[\#F9F9FB\]:hover { background-color: var(--surface-secondary); }
+.dark .hover\:bg-\[\#E5E5EA\]:hover { background-color: #48484A; }
+.dark .bg-\[\#3A3A3C\] { background-color: #636366; }
+.dark .bg-\[\#1C1C1E\] { background-color: #3A3A3C; }
+
+/* Text */
+.dark .text-\[\#1C1C1E\],
+.dark .hover\:text-\[\#1C1C1E\]:hover { color: var(--foreground); }
+.dark .text-\[\#3A3A3C\],
+.dark .hover\:text-\[\#3A3A3C\]:hover { color: var(--foreground-secondary); }
+.dark .text-\[\#8E8E93\] { color: #98989D; }
+.dark .text-\[\#C7C7CC\],
+.dark .placeholder\:text-\[\#C7C7CC\]::placeholder { color: #6E6E73; }
+.dark .text-\[\#28A745\],
+.dark .text-\[\#1C6A2E\] { color: #4CD964; }
+.dark .text-\[\#CC0000\],
+.dark .text-\[\#A10000\] { color: #FF6961; }
+
+/* Rahmen und Trennlinien */
+.dark .border-\[\#C6C6C8\],
+.dark .border-\[\#E5E5EA\] { border-color: var(--separator); }
+.dark .border-\[\#F2F2F7\],
+.dark .divide-\[\#F2F2F7\] > :not([hidden]) ~ :not([hidden]) { border-color: var(--separator-opaque); }
+.dark .border-white { border-color: var(--surface); }
+
+/* Getönte Flächen (Badges, Statuskarten, Hinweise) */
+.dark .bg-\[\#E1F0FF\],
+.dark .bg-\[\#F0F7FF\],
+.dark .hover\:bg-\[\#F0F7FF\]:hover,
+.dark .hover\:bg-\[\#EBF5FF\]:hover { background-color: rgba(0,122,255,0.18); }
+.dark .bg-\[\#E3F9E8\] { background-color: rgba(52,199,89,0.18); }
+.dark .bg-\[\#FFE9E9\],
+.dark .bg-\[\#FFF3F3\],
+.dark .bg-\[\#FFF0F0\],
+.dark .bg-\[\#FFF8F8\] { background-color: rgba(255,59,48,0.14); }
+.dark .hover\:bg-\[\#FFE9E9\]:hover,
+.dark .hover\:bg-\[\#FFF0EF\]:hover,
+.dark .hover\:bg-\[\#FFE5E5\]:hover { background-color: rgba(255,59,48,0.22); }
+.dark .bg-\[\#F3E8FF\] { background-color: rgba(175,82,222,0.22); }
+.dark .bg-\[\#FFF3E0\],
+.dark .hover\:bg-\[\#FFF5E6\]:hover { background-color: rgba(255,149,0,0.18); }
+.dark .border-\[\#FFAAAA\],
+.dark .border-\[\#FFE9E9\] { border-color: rgba(255,59,48,0.32); }
+.dark .from-\[\#E1F0FF\] { --tw-gradient-from: #1F3A5F; }
+.dark .to-\[\#B8D9FF\] { --tw-gradient-to: #2C4F80; }
+
+/* Formularelemente */
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.dark select,
+.dark textarea {
+  background-color: var(--surface-secondary);
+  color: var(--foreground);
+  border-color: var(--separator);
+}
+.dark input::placeholder,
+.dark textarea::placeholder { color: #8E8E93; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #636366; }
+
+/* Logo hell/dunkel */
+.logo-dark-mode { display: none; }
+.dark .logo-dark-mode { display: block; }
+.dark .logo-light-mode { display: none; }
 
 @theme inline {
   --color-background: var(--background);

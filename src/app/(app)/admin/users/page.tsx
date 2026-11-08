@@ -7,6 +7,8 @@ import { UserRoleSelector } from "@/components/admin/user-role-selector";
 import { Mail } from "lucide-react";
 import { UserSearchInput } from "@/components/admin/user-search-input";
 import { UserLoansModal } from "@/components/admin/user-loans-modal";
+import Link from "next/link";
+import { Upload } from "lucide-react";
 
 interface PageProps {
   searchParams: Promise<{ search?: string; role?: string; school?: string }>;
@@ -96,145 +98,185 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-[28px] font-bold text-[#1C1C1E] tracking-tight">
-          Benutzer
-        </h1>
-        <p className="text-[14px] text-[#8E8E93] mt-0.5">
-          {users.length} Benutzer{activeFilters ? ` · ${activeFilters}` : ""}
-        </p>
+      {/* Titelzeile */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-[28px] font-bold text-[var(--foreground)] tracking-tight">Benutzer</h1>
+          <p className="text-[14px] text-[var(--foreground-tertiary)] mt-0.5">
+            {users.length} Benutzer{activeFilters ? ` · ${activeFilters}` : ""}
+          </p>
+        </div>
+        {isAdmin && (
+          <Link
+            href="/admin/import"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[var(--surface-secondary)] text-[var(--foreground-secondary)] rounded-xl text-[14px] font-semibold hover:opacity-90 transition-opacity"
+          >
+            <Upload size={15} />
+            Benutzer importieren
+          </Link>
+        )}
       </div>
 
       {/* Filterzeile: Suche, Rolle, Schulhaus */}
       <UserSearchInput schools={isAdmin ? schools : []} />
 
-      {/* Mobile cards */}
+      {/* Mobil: Karten */}
       <div className="md:hidden space-y-3">
-        {users.map((user) => (
-          <div key={user.id} className="card p-4">
-            <div className="flex items-center gap-3 mb-3">
-              {user.image ? (
-                <img src={user.image} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-[#007AFF] flex items-center justify-center text-white text-[14px] font-semibold flex-shrink-0">
-                  {user.name?.[0]?.toUpperCase() ?? "?"}
+        {users.map((user) => {
+          const isSelf = user.id === session.user.id;
+          return (
+            <div key={user.id} className="card p-4">
+              <div className="flex items-center gap-3 mb-3">
+                {user.image ? (
+                  <img src={user.image} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-[#007AFF] flex items-center justify-center text-white text-[14px] font-semibold flex-shrink-0">
+                    {user.name?.[0]?.toUpperCase() ?? "?"}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold text-[var(--foreground)] truncate">{user.name ?? "Unbekannt"}</p>
+                  <a href={`mailto:${user.email}`} className="flex items-center gap-1 text-[12px] text-[#007AFF]">
+                    <Mail size={10} /><span className="truncate">{user.email}</span>
+                  </a>
                 </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-semibold text-[#1C1C1E] truncate">{user.name ?? "Unbekannt"}</p>
-                <a href={`mailto:${user.email}`} className="flex items-center gap-1 text-[12px] text-[#007AFF]">
-                  <Mail size={10} /><span className="truncate">{user.email}</span>
-                </a>
+                {isSelf && <Badge variant={roleColors[user.role]}>{roleLabels[user.role]}</Badge>}
               </div>
-              <Badge variant={roleColors[user.role]}>{roleLabels[user.role]}</Badge>
-            </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[#8E8E93] mb-3">
-              {user.school ? (
-                <span>{user.school.name}</span>
-              ) : (
-                <span className="text-[#FF3B30] font-medium">Nicht zugewiesen</span>
-              )}
-              <span>Dabei seit {formatDate(user.createdAt)}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <UserLoansModal
-                userId={user.id}
-                userName={user.name ?? user.email ?? ""}
-                userEmail={user.email ?? ""}
-                loanCount={user._count.loans}
-              />
-              {user.id !== session.user.id && (
+              <div className="flex items-center gap-3 mb-3">
+                <UserLoansModal
+                  userId={user.id}
+                  userName={user.name ?? user.email ?? ""}
+                  userEmail={user.email ?? ""}
+                  loanCount={user._count.loans}
+                />
+                <span className="text-[12px] text-[var(--foreground-tertiary)]">Dabei seit {formatDate(user.createdAt)}</span>
+              </div>
+              {!isSelf && (
                 <UserRoleSelector
                   userId={user.id}
                   currentRole={user.role}
                   currentSchoolId={user.school?.id ?? null}
                   memberSchoolIds={user.schoolMemberships.map((m) => m.schoolId)}
                   isAdmin={isAdmin}
-                  schools={schools}
+                  schools={schools.length > 0 ? schools : user.school ? [user.school] : []}
                 />
               )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Desktop table */}
+      {/* Desktop: dichte Tabelle wie im LMI */}
       <div className="hidden md:block card overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-[#F2F2F7]">
-              {["Benutzer", "Aktives Schulhaus", "Rolle", "Ausleihen", "Seit", "Aktionen"].map((h) => (
-                <th key={h} className="text-left px-5 py-3.5 text-[12px] font-semibold text-[#8E8E93] uppercase tracking-wide">
+            <tr className="border-b border-[var(--separator-opaque)]">
+              {[
+                ["Name / E-Mail", ""],
+                ["Rolle", ""],
+                ["Schulhäuser", ""],
+                ["Ausleihen", "text-right"],
+                ["", "w-10"],
+              ].map(([h, extra], i) => (
+                <th
+                  key={i}
+                  className={`px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-tertiary)] ${extra}`}
+                >
                   {h}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
-              <tr key={user.id} className="border-b border-[#F2F2F7] last:border-0 hover:bg-[#F9F9FB] transition-colors">
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-3">
-                    {user.image ? (
-                      <img src={user.image} alt="" className="w-9 h-9 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full bg-[#007AFF] flex items-center justify-center text-white text-[13px] font-semibold">
-                        {user.name?.[0]?.toUpperCase() ?? "?"}
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-[14px] font-semibold text-[#1C1C1E]">
-                        {user.name ?? "Unbekannt"}
-                      </p>
-                      <a
-                        href={`mailto:${user.email}`}
-                        className="flex items-center gap-1 text-[12px] text-[#007AFF] hover:underline"
-                      >
-                        <Mail size={11} />
-                        {user.email}
-                      </a>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-5 py-4">
-                  {user.school ? (
-                    <span className="text-[13px] text-[#3A3A3C] font-medium">{user.school.name}</span>
-                  ) : (
-                    <span className="text-[12px] text-[#FF3B30] font-medium">Nicht zugewiesen</span>
-                  )}
-                </td>
-                <td className="px-5 py-4">
-                  <Badge variant={roleColors[user.role]}>
-                    {roleLabels[user.role]}
-                  </Badge>
-                </td>
-                <td className="px-5 py-4">
-                  <UserLoansModal
-                    userId={user.id}
-                    userName={user.name ?? user.email ?? ""}
-                    userEmail={user.email ?? ""}
-                    loanCount={user._count.loans}
-                  />
-                </td>
-                <td className="px-5 py-4">
-                  <p className="text-[13px] text-[#8E8E93]">
-                    {formatDate(user.createdAt)}
-                  </p>
-                </td>
-                <td className="px-5 py-4">
-                  {user.id !== session.user.id && (
-                    <UserRoleSelector
-                      userId={user.id}
-                      currentRole={user.role}
-                      currentSchoolId={user.school?.id ?? null}
-                      memberSchoolIds={user.schoolMemberships.map((m) => m.schoolId)}
-                      isAdmin={isAdmin}
-                      schools={schools}
-                    />
-                  )}
-                </td>
+            {users.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-12 text-center text-[var(--foreground-tertiary)]">Keine Benutzer gefunden</td>
               </tr>
-            ))}
+            ) : (
+              users.map((user) => {
+                const isSelf = user.id === session.user.id;
+                const chipSchools = schools.length > 0 ? schools : user.school ? [user.school] : [];
+                return (
+                  <tr key={user.id} className="border-b border-[var(--separator-opaque)] last:border-0 hover:bg-[var(--surface-secondary)]">
+                    <td className="px-4 py-2">
+                      <div className="flex items-center gap-3">
+                        {user.image ? (
+                          <img src={user.image} alt="" className="h-8 w-8 flex-shrink-0 rounded-full object-cover" />
+                        ) : (
+                          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#007AFF] text-[12px] font-semibold text-white">
+                            {user.name?.[0]?.toUpperCase() ?? "?"}
+                          </div>
+                        )}
+                        <div className="min-w-0 leading-tight">
+                          <p className="truncate text-[13.5px] font-semibold text-[var(--foreground)]">
+                            {user.name ?? "Unbekannt"}
+                            {isSelf && (
+                              <span className="ml-1.5 rounded-full bg-[#E1F0FF] px-1.5 py-px text-[9.5px] font-bold uppercase tracking-wider text-[#007AFF]">Du</span>
+                            )}
+                          </p>
+                          <p className="truncate text-[11.5px] text-[var(--foreground-tertiary)]">{user.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 whitespace-nowrap">
+                      {isSelf ? (
+                        <Badge variant={roleColors[user.role]}>{roleLabels[user.role]}</Badge>
+                      ) : (
+                        <UserRoleSelector
+                          userId={user.id}
+                          currentRole={user.role}
+                          currentSchoolId={user.school?.id ?? null}
+                          memberSchoolIds={user.schoolMemberships.map((m) => m.schoolId)}
+                          isAdmin={isAdmin}
+                          schools={chipSchools}
+                          layout="row"
+                          part="role"
+                        />
+                      )}
+                    </td>
+                    <td className="px-4 py-2">
+                      {isSelf ? (
+                        <span className="text-[12px] text-[var(--foreground-secondary)]">
+                          {user.school?.name.replace(/^Schulhaus\s+/, "") ?? <span className="font-medium text-[#FF3B30]">Nicht zugewiesen</span>}
+                        </span>
+                      ) : (
+                        <UserRoleSelector
+                          userId={user.id}
+                          currentRole={user.role}
+                          currentSchoolId={user.school?.id ?? null}
+                          memberSchoolIds={user.schoolMemberships.map((m) => m.schoolId)}
+                          isAdmin={isAdmin}
+                          schools={chipSchools}
+                          layout="row"
+                          part="schools"
+                        />
+                      )}
+                    </td>
+                    <td className="px-4 py-2 text-right tabular-nums">
+                      <div className="inline-flex justify-end">
+                        <UserLoansModal
+                          userId={user.id}
+                          userName={user.name ?? user.email ?? ""}
+                          userEmail={user.email ?? ""}
+                          loanCount={user._count.loans}
+                        />
+                      </div>
+                    </td>
+                    <td className="px-2 py-2 text-right">
+                      {user.email && (
+                        <a
+                          href={`mailto:${user.email}`}
+                          title={`E-Mail an ${user.name ?? user.email}`}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[var(--foreground-tertiary)] transition-[background-color,color] duration-[160ms] hover:bg-[var(--surface-secondary)] hover:text-[var(--foreground)]"
+                        >
+                          <Mail size={14} />
+                        </a>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
