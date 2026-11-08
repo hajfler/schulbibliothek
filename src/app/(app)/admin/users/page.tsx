@@ -9,8 +9,11 @@ import { UserSearchInput } from "@/components/admin/user-search-input";
 import { UserLoansModal } from "@/components/admin/user-loans-modal";
 
 interface PageProps {
-  searchParams: Promise<{ search?: string }>;
+  searchParams: Promise<{ search?: string; role?: string; school?: string }>;
 }
+
+const VALID_ROLES = ["USER", "LIBRARIAN", "ADMIN"] as const;
+type FilterRole = (typeof VALID_ROLES)[number];
 
 interface UserWithDetails {
   id: string;
@@ -30,21 +33,31 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
     redirect("/dashboard");
   }
 
-  const { search } = await searchParams;
+  const { search, role, school } = await searchParams;
   const isAdmin = session.user.role === "ADMIN";
-  const schoolId = isAdmin ? undefined : (session.user.schoolId ?? undefined);
+  const roleFilter = role && (VALID_ROLES as readonly string[]).includes(role) ? (role as FilterRole) : undefined;
+
+  // Bibliothekare sehen nur ihr aktives Schulhaus; Admins filtern frei nach Mitgliedschaft
+  const schoolWhere = isAdmin
+    ? school
+      ? { schoolMemberships: { some: { schoolId: school } } }
+      : {}
+    : { schoolId: session.user.schoolId ?? undefined };
 
   const [users, schools] = await Promise.all([
     prisma.user.findMany({
-      where: search
-        ? {
-            schoolId,
-            OR: [
-              { name: { contains: search, mode: "insensitive" } },
-              { email: { contains: search, mode: "insensitive" } },
-            ],
-          }
-        : { schoolId },
+      where: {
+        ...schoolWhere,
+        ...(roleFilter ? { role: roleFilter } : {}),
+        ...(search
+          ? {
+              OR: [
+                { name: { contains: search, mode: "insensitive" } },
+                { email: { contains: search, mode: "insensitive" } },
+              ],
+            }
+          : {}),
+      },
       include: {
         school: { select: { id: true, name: true } },
         schoolMemberships: { select: { schoolId: true } },
@@ -73,19 +86,27 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
     USER: "Benutzer",
   };
 
+  const activeFilters = [
+    search && `„${search}"`,
+    roleFilter && roleLabels[roleFilter],
+    isAdmin && school && (schools.find((s) => s.id === school)?.name ?? ""),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-[28px] font-bold text-[#1C1C1E] tracking-tight">
-            Benutzer
-          </h1>
-          <p className="text-[14px] text-[#8E8E93] mt-0.5">
-            {users.length} Benutzer{search ? ` für „${search}"` : ""}
-          </p>
-        </div>
-        <UserSearchInput />
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-[28px] font-bold text-[#1C1C1E] tracking-tight">
+          Benutzer
+        </h1>
+        <p className="text-[14px] text-[#8E8E93] mt-0.5">
+          {users.length} Benutzer{activeFilters ? ` · ${activeFilters}` : ""}
+        </p>
       </div>
+
+      {/* Filterzeile: Suche, Rolle, Schulhaus */}
+      <UserSearchInput schools={isAdmin ? schools : []} />
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-3">
