@@ -59,3 +59,10 @@ daher kein Laufzeittest.
   Klick vom Auto-Modus blockiert → Richard manuell).
 - Hinweis: Neue Benutzer, die ohne Vorab-Import per SSO kommen, erhalten
   weiterhin automatisch alle Schulhäuser (createUser-Event).
+
+## Nachtrag 08.11.2026 – Deploy-Pipeline
+- GitHub-Action scheiterte seit März am Lint (4 Fehler) → behoben in fde91b5.
+- Repo-Secrets COOLIFY_WEBHOOK_URL / COOLIFY_TOKEN fehlten, am 08.11.2026 von
+  Richard per `gh secret set` gesetzt.
+- Graph-Berechtigung gehört auf App «Bibliothek» (ffdf4296-c516-4fb0-a215-ab0b1bfc44b2),
+  nicht auf «bibliothek.schule-dietlikon.ch» (42133daf…). Login-URL zeigt die Client-ID.
