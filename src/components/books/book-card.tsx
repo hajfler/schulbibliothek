@@ -15,6 +15,7 @@ interface BookCardProps {
     availableCopies: number;
     typePublication: string;
     series?: string | null;
+    category?: { name: string; color: string | null; parent?: { name: string; color: string | null } | null } | null;
     loans?: Array<{ user: { name: string | null; email: string | null } }>;
   };
   isStaff?: boolean;
@@ -91,6 +92,17 @@ export function BookCard({ book, isStaff }: BookCardProps) {
           {book.title}
         </p>
         <p className="text-[11px] text-[#8E8E93] truncate mt-0.5">{book.author}</p>
+        {book.category && (
+          <p className="flex items-center gap-1 text-[10px] text-[#8E8E93] truncate mt-0.5">
+            <span
+              className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0"
+              style={{ backgroundColor: book.category.parent?.color ?? book.category.color ?? "#C7C7CC" }}
+            />
+            <span className="truncate">
+              {book.category.parent ? `${book.category.parent.name} › ${book.category.name}` : book.category.name}
+            </span>
+          </p>
+        )}
         <div className="flex items-center gap-1 mt-1.5">
           <div
             className={cn(

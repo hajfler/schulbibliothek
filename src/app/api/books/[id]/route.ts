@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import type { BookFormat, PublicationType } from "@prisma/client";
+import { validateCategoryForSchool } from "@/lib/categories";
 
 export async function GET(
   req: NextRequest,
@@ -18,6 +19,7 @@ export async function GET(
     where: { id },
     include: {
       school: { select: { name: true } },
+      category: { select: { id: true, name: true, color: true, parent: { select: { id: true, name: true } } } },
       loans: {
         include: {
           user: { select: { id: true, name: true, email: true } },
@@ -54,9 +56,29 @@ export async function PUT(
   const { id } = await params;
   const body = await req.json();
 
+  const existing = await prisma.book.findUnique({ where: { id }, select: { schoolId: true } });
+  if (!existing) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // Schulhaus (Bibliothek) wechseln dürfen nur Admins
+  const targetSchoolId =
+    session.user.role === "ADMIN" && typeof body.schoolId === "string" && body.schoolId
+      ? body.schoolId
+      : existing.schoolId;
+
+  let categoryId: string | null;
+  try {
+    categoryId = await validateCategoryForSchool(body.categoryId, targetSchoolId);
+  } catch {
+    return NextResponse.json({ error: "Category does not belong to this school" }, { status: 400 });
+  }
+
   const book = await prisma.book.update({
     where: { id },
     data: {
+      schoolId: targetSchoolId,
+      categoryId,
       isbn: body.isbn ?? null,
       title: body.title,
       author: body.author,

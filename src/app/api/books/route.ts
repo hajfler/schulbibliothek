@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import type { BookFormat, PublicationType } from "@prisma/client";
+import { validateCategoryForSchool } from "@/lib/categories";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -13,6 +14,7 @@ export async function GET(req: NextRequest) {
   const schoolId = searchParams.get("schoolId") ?? session.user.schoolId;
   const search = searchParams.get("search") ?? "";
   const type = searchParams.get("type");
+  const category = searchParams.get("category");
   const available = searchParams.get("available");
   const page = parseInt(searchParams.get("page") ?? "1");
   const limit = parseInt(searchParams.get("limit") ?? "20");
@@ -32,6 +34,8 @@ export async function GET(req: NextRequest) {
       ],
     }),
     ...(type && { typePublication: type as PublicationType }),
+    // Hauptkategorie gewählt → inkl. aller Unterkategorien
+    ...(category && { OR: [{ categoryId: category }, { category: { parentId: category } }] }),
   };
 
   const [books, total] = await Promise.all([
@@ -86,7 +90,7 @@ export async function POST(req: NextRequest) {
   const {
     isbn, title, author, publishingHouse, series, typePublication,
     publishedDate, pageCount, format, coverUrl, description, language,
-    totalCopies, schoolId,
+    totalCopies, schoolId, categoryId,
   } = body;
 
   if (!title || !author) {
@@ -96,6 +100,13 @@ export async function POST(req: NextRequest) {
   const effectiveSchoolId = schoolId ?? session.user.schoolId;
   if (!effectiveSchoolId) {
     return NextResponse.json({ error: "No school assigned" }, { status: 400 });
+  }
+
+  let effectiveCategoryId: string | null;
+  try {
+    effectiveCategoryId = await validateCategoryForSchool(categoryId, effectiveSchoolId);
+  } catch {
+    return NextResponse.json({ error: "Category does not belong to this school" }, { status: 400 });
   }
 
   const book = await prisma.book.create({
@@ -114,6 +125,7 @@ export async function POST(req: NextRequest) {
       language: language || "de",
       totalCopies: totalCopies ? parseInt(totalCopies) : 1,
       schoolId: effectiveSchoolId,
+      categoryId: effectiveCategoryId,
     },
   });
 

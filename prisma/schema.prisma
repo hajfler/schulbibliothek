@@ -49,12 +49,12 @@ model User {
   emailVerified DateTime?
   image         String?
   role          Role      @default(USER)
-  schoolId      String?   // active/selected school for book filtering
+  schoolId      String? // active/selected school for book filtering
 
   accounts          Account[]
   sessions          Session[]
   loans             Loan[]
-  school            School?        @relation(fields: [schoolId], references: [id])
+  school            School?       @relation(fields: [schoolId], references: [id])
   schoolMemberships UserSchool[]
   reservations      Reservation[]
 
@@ -74,6 +74,7 @@ model School {
   users           User[]
   books           Book[]
   userMemberships UserSchool[]
+  categories      Category[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -104,8 +105,10 @@ model Book {
   language        String?         @default("de")
   totalCopies     Int             @default(1)
   schoolId        String
+  categoryId      String?
 
   school       School        @relation(fields: [schoolId], references: [id])
+  category     Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   loans        Loan[]
   reservations Reservation[]
 
@@ -114,6 +117,29 @@ model Book {
 
   @@index([isbn])
   @@index([schoolId])
+  @@index([categoryId])
+}
+
+/// Ausleihkategorie einer Bibliothek (pro Schulhaus/Trakt), zweistufig:
+/// Hauptkategorie (parentId = null) mit optionalen Unterkategorien.
+model Category {
+  id        String  @id @default(cuid())
+  name      String
+  color     String?
+  sortOrder Int     @default(0)
+  schoolId  String
+  parentId  String?
+
+  school   School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  parent   Category?  @relation("CategoryChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children Category[] @relation("CategoryChildren")
+  books    Book[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolId])
+  @@index([parentId])
 }
 
 model Reservation {
@@ -136,12 +162,12 @@ model Loan {
   id         String     @id @default(cuid())
   bookId     String
   userId     String
-  borrowedAt  DateTime   @default(now())
-  dueDate     DateTime
-  returnedAt  DateTime?
-  status      LoanStatus @default(ACTIVE)
-  notes       String?
-  extensions  Int        @default(0)
+  borrowedAt DateTime   @default(now())
+  dueDate    DateTime
+  returnedAt DateTime?
+  status     LoanStatus @default(ACTIVE)
+  notes      String?
+  extensions Int        @default(0)
 
   book      Book       @relation(fields: [bookId], references: [id])
   user      User       @relation(fields: [userId], references: [id])

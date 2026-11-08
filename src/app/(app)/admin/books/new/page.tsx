@@ -12,13 +12,15 @@ export default async function NewBookPage() {
     redirect("/books");
   }
 
-  // Admins can create books for any school; others only for their own school
+  // Admins erfassen Bücher für jedes Schulhaus, Bibliothekare für alle Schulhäuser, denen sie zugeteilt sind
   const isAdmin = session.user?.role === "ADMIN";
   const schools = isAdmin
-    ? await prisma.school.findMany({ orderBy: { name: "asc" } })
-    : session.user?.schoolId
-    ? await prisma.school.findMany({ where: { id: session.user.schoolId } })
-    : [];
+    ? await prisma.school.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
+    : await prisma.school.findMany({
+        where: { userMemberships: { some: { userId: session.user.id } } },
+        orderBy: { name: "asc" },
+        select: { id: true, name: true },
+      });
 
   return (
     <div className="max-w-2xl space-y-6">

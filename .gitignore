@@ -47,3 +47,6 @@ next-env.d.ts
 # Favicon (deployed separately via Coolify persistent storage)
 src/app/favicon.ico
 public/favicon.ico
+
+# tools
+.serena/

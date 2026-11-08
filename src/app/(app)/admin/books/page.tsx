@@ -1,10 +1,9 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { formatDate } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
-import { DeleteBookButton } from "@/components/admin/delete-book-button";
-import { BookOpen, Plus, Edit2 } from "lucide-react";
+import { formatCategoryPath } from "@/lib/categories";
+import { AdminBooksTable, type AdminBookRow } from "@/components/admin/admin-books-table";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 
 export default async function AdminBooksPage() {
@@ -15,10 +14,20 @@ export default async function AdminBooksPage() {
 
   const isAdmin = session.user.role === "ADMIN";
 
+  // Admins sehen alle Bibliotheken, Bibliothekare die Schulhäuser, denen sie zugeteilt sind
+  const schools = isAdmin
+    ? await prisma.school.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
+    : await prisma.school.findMany({
+        where: { userMemberships: { some: { userId: session.user.id } } },
+        orderBy: { name: "asc" },
+        select: { id: true, name: true },
+      });
+
   const books = await prisma.book.findMany({
-    where: isAdmin ? {} : { schoolId: session.user.schoolId ?? undefined },
+    where: isAdmin ? {} : { schoolId: { in: schools.map((s) => s.id) } },
     include: {
       school: { select: { name: true } },
+      category: { select: { name: true, color: true, parent: { select: { name: true, color: true } } } },
       _count: {
         select: {
           loans: { where: { status: { in: ["ACTIVE", "OVERDUE"] } } },
@@ -28,10 +37,21 @@ export default async function AdminBooksPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  const typeLabels: Record<string, string> = {
-    BOOK: "Buch", MAGAZINE: "Zeitschrift", COMIC: "Comic",
-    AUDIOBOOK: "Hörbuch", EBOOK: "E-Book", REFERENCE: "Nachschlagewerk", OTHER: "Sonstiges",
-  };
+  const rows: AdminBookRow[] = books.map((b) => ({
+    id: b.id,
+    title: b.title,
+    author: b.author,
+    isbn: b.isbn,
+    coverUrl: b.coverUrl,
+    typePublication: b.typePublication,
+    totalCopies: b.totalCopies,
+    activeLoans: b._count.loans,
+    createdAt: b.createdAt.toISOString(),
+    schoolId: b.schoolId,
+    schoolName: b.school.name,
+    categoryPath: formatCategoryPath(b.category),
+    categoryColor: b.category?.parent?.color ?? b.category?.color ?? null,
+  }));
 
   return (
     <div className="space-y-6">
@@ -40,7 +60,10 @@ export default async function AdminBooksPage() {
           <h1 className="text-[28px] font-bold text-[#1C1C1E] tracking-tight">
             Bücher verwalten
           </h1>
-          <p className="text-[14px] text-[#8E8E93] mt-0.5">{books.length} Bücher</p>
+          <p className="text-[14px] text-[#8E8E93] mt-0.5">
+            {books.length} Bücher
+            {schools.length > 1 && " · Bücher anhaken, um sie in eine andere Bibliothek zu verschieben"}
+          </p>
         </div>
         <Link
           href="/admin/books/new"
@@ -51,85 +74,7 @@ export default async function AdminBooksPage() {
         </Link>
       </div>
 
-      <div className="card overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-[#F2F2F7]">
-              {["Buch", ...(isAdmin ? ["Schulhaus"] : []), "Typ", "Exemplare", "Ausgeliehen", "Hinzugefügt", "Aktionen"].map((h) => (
-                <th key={h} className="text-left px-5 py-3.5 text-[12px] font-semibold text-[#8E8E93] uppercase tracking-wide">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {books.map((book) => {
-              const available = book.totalCopies - book._count.loans;
-              return (
-                <tr key={book.id} className="border-b border-[#F2F2F7] last:border-0 hover:bg-[#F9F9FB] transition-colors">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      {book.coverUrl ? (
-                        <img src={book.coverUrl} alt="" className="w-8 h-11 object-cover rounded-md shadow-sm flex-shrink-0" />
-                      ) : (
-                        <div className="w-8 h-11 bg-[#F2F2F7] rounded-md flex items-center justify-center flex-shrink-0">
-                          <BookOpen size={14} className="text-[#C7C7CC]" />
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-[14px] font-semibold text-[#1C1C1E] line-clamp-1">{book.title}</p>
-                        <p className="text-[12px] text-[#8E8E93]">{book.author}</p>
-                        {book.isbn && <p className="text-[11px] text-[#C7C7CC]">ISBN: {book.isbn}</p>}
-                      </div>
-                    </div>
-                  </td>
-                  {isAdmin && (
-                    <td className="px-5 py-4">
-                      <span className="text-[13px] text-[#3A3A3C]">{book.school.name}</span>
-                    </td>
-                  )}
-                  <td className="px-5 py-4">
-                    <Badge variant="gray">{typeLabels[book.typePublication] ?? book.typePublication}</Badge>
-                  </td>
-                  <td className="px-5 py-4">
-                    <span className="text-[14px] text-[#3A3A3C]">{book.totalCopies}</span>
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-1.5">
-                      <div className={`w-2 h-2 rounded-full ${available > 0 ? "bg-[#34C759]" : "bg-[#FF3B30]"}`} />
-                      <span className="text-[13px] text-[#3A3A3C]">
-                        {book._count.loans} / {book.totalCopies}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4">
-                    <p className="text-[13px] text-[#8E8E93]">{formatDate(book.createdAt)}</p>
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-1">
-                      <Link
-                        href={`/admin/books/${book.id}/edit`}
-                        className="p-2 rounded-lg hover:bg-[#F2F2F7] text-[#8E8E93] hover:text-[#1C1C1E] transition-colors"
-                      >
-                        <Edit2 size={15} />
-                      </Link>
-                      <Link
-                        href={`/books/${book.id}`}
-                        className="p-2 rounded-lg hover:bg-[#F2F2F7] text-[#8E8E93] hover:text-[#1C1C1E] transition-colors"
-                      >
-                        <BookOpen size={15} />
-                      </Link>
-                      {isAdmin && (
-                        <DeleteBookButton bookId={book.id} bookTitle={book.title} />
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <AdminBooksTable books={rows} schools={schools} isAdmin={isAdmin} />
     </div>
   );
 }

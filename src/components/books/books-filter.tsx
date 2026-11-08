@@ -26,7 +26,20 @@ interface School {
   name: string;
 }
 
-export function BooksFilter({ schools = [] }: { schools?: School[] }) {
+interface CategoryNode {
+  id: string;
+  name: string;
+  color: string | null;
+  children: CategoryNode[];
+}
+
+export function BooksFilter({
+  schools = [],
+  categories = [],
+}: {
+  schools?: School[];
+  categories?: CategoryNode[];
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -53,6 +66,19 @@ export function BooksFilter({ schools = [] }: { schools?: School[] }) {
   const currentType = searchParams.get("type") ?? "";
   const currentAvailable = searchParams.get("available") ?? "";
   const currentSchool = searchParams.get("school") ?? "";
+  const currentCategory = searchParams.get("category") ?? "";
+
+  const currentMain = categories.find(
+    (c) => c.id === currentCategory || c.children.some((ch) => ch.id === currentCategory)
+  );
+
+  const updateSchool = (schoolId: string) => {
+    // Kategorien sind pro Bibliothek, beim Wechsel zurücksetzen
+    const params = new URLSearchParams(searchParams.toString());
+    if (schoolId) params.set("school", schoolId); else params.delete("school");
+    params.delete("category");
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   return (
     <div className="flex flex-col gap-3">
@@ -93,7 +119,7 @@ export function BooksFilter({ schools = [] }: { schools?: School[] }) {
       {schools.length > 1 && (
         <div className="flex flex-wrap gap-1.5 bg-white border border-[#C6C6C8] rounded-xl p-1">
           <button
-            onClick={() => updateFilter("school", "")}
+            onClick={() => updateSchool("")}
             className={cn(
               "px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all",
               currentSchool === ""
@@ -106,7 +132,7 @@ export function BooksFilter({ schools = [] }: { schools?: School[] }) {
           {schools.map((s) => (
             <button
               key={s.id}
-              onClick={() => updateFilter("school", s.id)}
+              onClick={() => updateSchool(s.id)}
               className={cn(
                 "px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all",
                 currentSchool === s.id
@@ -117,6 +143,76 @@ export function BooksFilter({ schools = [] }: { schools?: School[] }) {
               {s.name}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Category filter (per library) */}
+      {categories.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-1.5 bg-white border border-[#C6C6C8] rounded-xl p-1">
+            <button
+              onClick={() => updateFilter("category", "")}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all",
+                currentCategory === ""
+                  ? "bg-[#007AFF] text-white shadow-sm"
+                  : "text-[#3A3A3C] hover:bg-[#F2F2F7]"
+              )}
+            >
+              Alle Kategorien
+            </button>
+            {categories.map((c) => {
+              const active = currentMain?.id === c.id;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => updateFilter("category", c.id)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all",
+                    active
+                      ? "bg-[#007AFF] text-white shadow-sm"
+                      : "text-[#3A3A3C] hover:bg-[#F2F2F7]"
+                  )}
+                >
+                  <span
+                    className={cn("inline-block w-2 h-2 rounded-full", active && "ring-1 ring-white")}
+                    style={{ backgroundColor: c.color ?? "#C7C7CC" }}
+                  />
+                  {c.name}
+                </button>
+              );
+            })}
+          </div>
+
+          {currentMain && currentMain.children.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 bg-[#F9F9FB] border border-[#E5E5EA] rounded-xl p-1 ml-4">
+              <button
+                onClick={() => updateFilter("category", currentMain.id)}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all",
+                  currentCategory === currentMain.id
+                    ? "bg-[#3A3A3C] text-white shadow-sm"
+                    : "text-[#3A3A3C] hover:bg-white"
+                )}
+              >
+                Alle in {currentMain.name}
+              </button>
+              {currentMain.children.map((ch) => (
+                <button
+                  key={ch.id}
+                  onClick={() => updateFilter("category", ch.id)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all",
+                    currentCategory === ch.id
+                      ? "bg-[#3A3A3C] text-white shadow-sm"
+                      : "text-[#3A3A3C] hover:bg-white"
+                  )}
+                >
+                  {ch.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

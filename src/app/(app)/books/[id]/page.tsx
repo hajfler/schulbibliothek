@@ -7,10 +7,11 @@ import { LoanModal } from "@/components/loans/loan-modal";
 import { ReserveButton } from "@/components/books/reserve-button";
 import {
   BookOpen, ArrowLeft, BookMarked, Calendar,
-  Hash, Building2, Layers, FileText, Globe, Edit2
+  Hash, Building2, Layers, FileText, Globe, Edit2, Tag
 } from "lucide-react";
 import Link from "next/link";
 import { ContactBorrowerModal } from "@/components/loans/contact-borrower-modal";
+import { formatCategoryPath } from "@/lib/categories";
 
 const typeLabels: Record<string, string> = {
   BOOK: "Buch", MAGAZINE: "Zeitschrift", COMIC: "Comic",
@@ -37,6 +38,7 @@ export default async function BookDetailPage({
     where: { id },
     include: {
       school: { select: { name: true, color: true } },
+      category: { select: { name: true, color: true, parent: { select: { name: true, color: true } } } },
       loans: {
         orderBy: { createdAt: "desc" },
         include: {
@@ -61,6 +63,8 @@ export default async function BookDetailPage({
     (l) => l.userId === session.user.id && ["ACTIVE", "OVERDUE"].includes(l.status)
   );
   const myReservation = book.reservations.find((r) => r.userId === session.user.id) ?? null;
+  const categoryPath = formatCategoryPath(book.category);
+  const categoryColor = book.category?.parent?.color ?? book.category?.color ?? null;
 
   return (
     <div className="space-y-6">
@@ -179,6 +183,15 @@ export default async function BookDetailPage({
               {book.series && (
                 <Badge variant="purple">{book.series}</Badge>
               )}
+              {categoryPath && (
+                <Badge variant="gray" className="gap-1.5">
+                  <span
+                    className="inline-block w-2 h-2 rounded-full"
+                    style={{ backgroundColor: categoryColor ?? "#8E8E93" }}
+                  />
+                  {categoryPath}
+                </Badge>
+              )}
             </div>
             <h1 className="text-[32px] font-bold text-[#1C1C1E] tracking-tight leading-tight">
               {book.title}
@@ -222,6 +235,9 @@ export default async function BookDetailPage({
               )}
               <InfoRow icon={<BookOpen size={15} />} label="Exemplare" value={book.totalCopies.toString()} />
               <InfoRow icon={<Building2 size={15} />} label="Bibliothek" value={book.school.name} />
+              {categoryPath && (
+                <InfoRow icon={<Tag size={15} />} label="Kategorie" value={categoryPath} />
+              )}
             </div>
           </div>
 

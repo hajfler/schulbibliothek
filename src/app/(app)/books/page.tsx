@@ -5,6 +5,7 @@ import { BooksFilter } from "@/components/books/books-filter";
 import { SchoolSwitcher } from "@/components/books/school-switcher";
 import { BookOpen, Plus } from "lucide-react";
 import Link from "next/link";
+import { getCategoryTree } from "@/lib/categories";
 
 interface PageProps {
   searchParams: Promise<{
@@ -12,6 +13,7 @@ interface PageProps {
     type?: string;
     available?: string;
     school?: string;
+    category?: string;
   }>;
 }
 
@@ -19,7 +21,7 @@ export default async function BooksPage({ searchParams }: PageProps) {
   const session = await auth();
   if (!session) return null;
 
-  const { search = "", type, available, school } = await searchParams;
+  const { search = "", type, available, school, category } = await searchParams;
   const isStaff = ["LIBRARIAN", "ADMIN"].includes(session.user.role);
 
   // Fetch user school memberships for the switcher (non-staff only)
@@ -42,6 +44,10 @@ export default async function BooksPage({ searchParams }: PageProps) {
     ? await prisma.school.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
     : [];
 
+  // Kategorien gibt es pro Bibliothek: nur anzeigen, wenn genau ein Schulhaus wirksam ist
+  const effectiveSchoolId = isStaff ? (school || null) : (session.user.schoolId ?? null);
+  const categories = effectiveSchoolId ? await getCategoryTree(effectiveSchoolId) : [];
+
   const where = {
     ...schoolFilter,
     ...(search && {
@@ -53,11 +59,14 @@ export default async function BooksPage({ searchParams }: PageProps) {
       ],
     }),
     ...(type && { typePublication: type as "BOOK" }),
+    // Hauptkategorie gewählt → inkl. aller Unterkategorien
+    ...(category && { OR: [{ categoryId: category }, { category: { parentId: category } }] }),
   };
 
   const books = await prisma.book.findMany({
     where,
     include: {
+      category: { select: { name: true, color: true, parent: { select: { name: true, color: true } } } },
       _count: {
         select: {
           loans: { where: { status: { in: ["ACTIVE", "OVERDUE"] } } },
@@ -113,7 +122,7 @@ export default async function BooksPage({ searchParams }: PageProps) {
       )}
 
       {/* Filter */}
-      <BooksFilter schools={schools} />
+      <BooksFilter schools={schools} categories={categories} />
 
       {/* Grid */}
       {booksWithAvailability.length === 0 ? (

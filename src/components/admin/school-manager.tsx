@@ -36,8 +36,55 @@ export function SchoolManager({ initialSchools }: SchoolManagerProps) {
   const [address, setAddress] = React.useState("");
   const [color, setColor] = React.useState("#007AFF");
   const [loading, setLoading] = React.useState(false);
+  const [editing, setEditing] = React.useState<School | null>(null);
+  const [editName, setEditName] = React.useState("");
+  const [editSlug, setEditSlug] = React.useState("");
+  const [editDescription, setEditDescription] = React.useState("");
+  const [editAddress, setEditAddress] = React.useState("");
+  const [editColor, setEditColor] = React.useState("#007AFF");
   const { addToast } = useToast();
   const router = useRouter();
+
+  const openEdit = (school: School) => {
+    setEditing(school);
+    setEditName(school.name);
+    setEditSlug(school.slug);
+    setEditDescription(school.description ?? "");
+    setEditAddress(school.address ?? "");
+    setEditColor(school.color ?? "#007AFF");
+  };
+
+  const handleUpdate = async () => {
+    if (!editing || !editName || !editSlug) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/schools/${editing.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editName,
+          slug: editSlug,
+          description: editDescription,
+          address: editAddress,
+          color: editColor,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        addToast(err.error === "Slug already in use" ? "Dieser Slug wird bereits verwendet" : "Fehler beim Speichern", "error");
+        return;
+      }
+      const updated = await res.json();
+      setSchools((prev) => prev.map((s) => (s.id === updated.id ? { ...s, ...updated } : s)));
+      addToast("Schulhaus gespeichert", "success");
+      setEditing(null);
+      router.refresh();
+    } catch {
+      addToast("Fehler", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCreate = async () => {
     if (!name || !slug) return;
@@ -84,6 +131,13 @@ export function SchoolManager({ initialSchools }: SchoolManagerProps) {
               >
                 <Building2 size={22} className="text-white" />
               </div>
+              <button
+                onClick={() => openEdit(school)}
+                className="p-2 rounded-lg hover:bg-[#F2F2F7] text-[#8E8E93] hover:text-[#1C1C1E] transition-colors"
+                title="Bearbeiten"
+              >
+                <Edit2 size={15} />
+              </button>
             </div>
             <h3 className="text-[17px] font-bold text-[#1C1C1E]">{school.name}</h3>
             <p className="text-[13px] text-[#8E8E93] mt-0.5">{school.slug}</p>
@@ -106,6 +160,62 @@ export function SchoolManager({ initialSchools }: SchoolManagerProps) {
           </div>
         ))}
       </div>
+
+      <Modal open={editing !== null} onClose={() => setEditing(null)} title="Schulhaus bearbeiten">
+        <div className="p-6 space-y-5">
+          <Input
+            label="Name *"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            placeholder="z.B. Schulhaus Dorf Trakt 2"
+          />
+          <Input
+            label="Slug *"
+            value={editSlug}
+            onChange={(e) => setEditSlug(e.target.value)}
+            placeholder="schulhaus-dorf-trakt-2"
+            hint="Eindeutiger Bezeichner (nur Kleinbuchstaben, Zahlen, Bindestriche)"
+          />
+          <Input
+            label="Adresse"
+            value={editAddress}
+            onChange={(e) => setEditAddress(e.target.value)}
+            placeholder="Musterstrasse 1, 8305 Dietlikon"
+          />
+          <Input
+            label="Beschreibung"
+            value={editDescription}
+            onChange={(e) => setEditDescription(e.target.value)}
+            placeholder="Optionale Beschreibung"
+          />
+          <div>
+            <label className="text-[13px] font-semibold text-[#3A3A3C] uppercase tracking-wide block mb-3">
+              Farbe
+            </label>
+            <div className="flex gap-2">
+              {SCHOOL_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setEditColor(c)}
+                  className={`w-8 h-8 rounded-full transition-transform ${
+                    editColor === c ? "scale-125 ring-2 ring-offset-2 ring-gray-400" : "hover:scale-110"
+                  }`}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="secondary" className="flex-1" onClick={() => setEditing(null)}>
+              Abbrechen
+            </Button>
+            <Button className="flex-1" loading={loading} onClick={handleUpdate} disabled={!editName || !editSlug}>
+              Speichern
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Schulhaus erstellen">
         <div className="p-6 space-y-5">

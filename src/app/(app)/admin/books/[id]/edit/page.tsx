@@ -20,6 +20,12 @@ export default async function EditBookPage({
   const book = await prisma.book.findUnique({ where: { id } });
   if (!book) notFound();
 
+  // Nur Admins dürfen ein Buch in ein anderes Schulhaus (Bibliothek) verschieben
+  const schools =
+    session.user.role === "ADMIN"
+      ? await prisma.school.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
+      : [];
+
   return (
     <div className="max-w-2xl space-y-6">
       <Link
@@ -55,8 +61,10 @@ export default async function EditBookPage({
             description: book.description ?? "",
             language: book.language ?? "de",
             totalCopies: book.totalCopies.toString(),
+            categoryId: book.categoryId ?? "",
           }}
           schoolId={book.schoolId}
+          schools={schools}
         />
       </ToastProvider>
     </div>

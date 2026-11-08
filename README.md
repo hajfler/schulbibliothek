@@ -40,6 +40,8 @@ Eine moderne, webbasierte Bibliotheksverwaltung für Schulen. Entwickelt mit Nex
 - **Benutzerverwaltung**: Benutzer einsehen und Rollen vergeben
 - **Erinnerungs-E-Mails**: Manuell auslösen oder automatisch per Cron
 - **Meistausgeliehene Bücher**: Statistik der beliebtesten Titel
+- **Mehrere Bibliotheken**: Jedes «Schulhaus» ist eine eigene Bibliothek (z.B. Schulhaus Dorf Trakt 2 und Trakt 3). Admins legen Schulhäuser an und benennen sie um, Bücher lassen sich einzeln oder gesammelt (Checkboxen in «Bücher verwalten») in eine andere Bibliothek verschieben
+- **Ausleihkategorien**: Pro Bibliothek zweistufige Kategorien (Hauptkategorie mit Farbe, Unterkategorien). Verwaltung unter «Kategorien», Standardsets für Trakt 2 und Trakt 3 (aus «Lehrerbibliothek-Unterkategorien.docx») per Knopfdruck ladbar, Filter in der Bücherübersicht
 
 ### Automatische E-Mails
 

@@ -53,11 +53,20 @@ interface BookFormData {
   description: string;
   language: string;
   totalCopies: string;
+  categoryId: string;
 }
 
 interface School {
   id: string;
   name: string;
+}
+
+interface CategoryNode {
+  id: string;
+  name: string;
+  color: string | null;
+  parentId: string | null;
+  children: CategoryNode[];
 }
 
 interface BookFormProps {
@@ -71,7 +80,7 @@ const empty: BookFormData = {
   isbn: "", title: "", author: "", publishingHouse: "", series: "",
   typePublication: "BOOK", publishedDate: "", pageCount: "",
   format: "HARDCOVER", coverUrl: "", description: "", language: "de",
-  totalCopies: "1",
+  totalCopies: "1", categoryId: "",
 };
 
 export function BookForm({ initialData, schoolId, schools = [], mode }: BookFormProps) {
@@ -81,6 +90,8 @@ export function BookForm({ initialData, schoolId, schools = [], mode }: BookForm
   const [isbnLoading, setIsbnLoading] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
   const [errors, setErrors] = React.useState<Partial<BookFormData>>({});
+  const [categories, setCategories] = React.useState<CategoryNode[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = React.useState(false);
   const [coverMode, setCoverMode] = React.useState<"url" | "upload">(
     initialData?.coverUrl && (initialData.coverUrl.startsWith("/api/covers/") || initialData.coverUrl.startsWith("/covers/")) ? "upload" : "url"
   );
@@ -91,6 +102,41 @@ export function BookForm({ initialData, schoolId, schools = [], mode }: BookForm
     setData((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: undefined }));
   };
+
+  // Kategorien gehören zur Bibliothek (Schulhaus): bei Wechsel neu laden
+  React.useEffect(() => {
+    if (!selectedSchoolId) {
+      setCategories([]);
+      return;
+    }
+    let cancelled = false;
+    setCategoriesLoading(true);
+    fetch(`/api/categories?schoolId=${encodeURIComponent(selectedSchoolId)}`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((tree: CategoryNode[]) => {
+        if (!cancelled) setCategories(tree);
+      })
+      .catch(() => {
+        if (!cancelled) setCategories([]);
+      })
+      .finally(() => {
+        if (!cancelled) setCategoriesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedSchoolId]);
+
+  const handleSchoolChange = (schoolId: string) => {
+    setSelectedSchoolId(schoolId);
+    set("categoryId", "");
+  };
+
+  // Gewählte Kategorie → Haupt- und Unterkategorie auflösen
+  const selectedMain = categories.find(
+    (c) => c.id === data.categoryId || c.children.some((ch) => ch.id === data.categoryId)
+  );
+  const selectedSub = selectedMain?.children.find((ch) => ch.id === data.categoryId);
 
   const fetchISBN = async (isbn: string) => {
     if (!isbn) return;
@@ -221,11 +267,16 @@ export function BookForm({ initialData, schoolId, schools = [], mode }: BookForm
       {schools.length > 1 && (
         <div className="card p-6">
           <Select
-            label="Schulhaus"
+            label="Schulhaus / Bibliothek"
             value={selectedSchoolId}
-            onChange={(e) => setSelectedSchoolId(e.target.value)}
+            onChange={(e) => handleSchoolChange(e.target.value)}
             options={schools.map((s) => ({ value: s.id, label: s.name }))}
           />
+          {mode === "edit" && schoolId && selectedSchoolId !== schoolId && (
+            <p className="text-[12px] text-[#FF9500] mt-2">
+              Das Buch wird in eine andere Bibliothek verschoben. Die Kategorie muss neu gewählt werden.
+            </p>
+          )}
         </div>
       )}
 
@@ -341,6 +392,30 @@ export function BookForm({ initialData, schoolId, schools = [], mode }: BookForm
             value={data.language}
             onChange={(e) => set("language", e.target.value)}
             options={LANGUAGE_OPTIONS}
+          />
+        </div>
+
+        {/* Kategorie (Haupt- und Unterkategorie der Bibliothek) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Select
+            label="Kategorie"
+            value={selectedMain?.id ?? ""}
+            onChange={(e) => set("categoryId", e.target.value)}
+            disabled={categoriesLoading || categories.length === 0}
+            options={[
+              { value: "", label: categories.length === 0 ? (categoriesLoading ? "Wird geladen..." : "Keine Kategorien vorhanden") : "Keine Kategorie" },
+              ...categories.map((c) => ({ value: c.id, label: c.name })),
+            ]}
+          />
+          <Select
+            label="Unterkategorie"
+            value={selectedSub?.id ?? ""}
+            onChange={(e) => set("categoryId", e.target.value || selectedMain?.id || "")}
+            disabled={!selectedMain || selectedMain.children.length === 0}
+            options={[
+              { value: "", label: selectedMain && selectedMain.children.length > 0 ? "Keine Unterkategorie" : "–" },
+              ...(selectedMain?.children ?? []).map((c) => ({ value: c.id, label: c.name })),
+            ]}
           />
         </div>
 
