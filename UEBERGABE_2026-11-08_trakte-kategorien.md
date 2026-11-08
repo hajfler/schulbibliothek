@@ -85,3 +85,10 @@ daher kein Laufzeittest.
 - Elias Reich: Rolle Bibliothekar, aktives Schulhaus Trakt 1.
 - Offen: Seraina teilt die 4 Bücher in Trakt 1 zu (Sammel-Verschieben) und vergibt
   Kategorien; Trakt 1 hat kein Standard-Kategorienset.
+
+## Nachtrag 08.11.2026 09:25 – Schulhaus-Wechsel griff nicht
+- Befund (Testuser testl): SchoolSwitcher schrieb das Schulhaus in die DB, die Seiten
+  filterten aber mit dem im JWT beim Login gespeicherten schoolId.
+- Fix e08970a: jwt-Callback liest Rolle und aktives Schulhaus bei jeder Anfrage aus
+  der DB. Rollenänderungen greifen damit ebenfalls sofort, kein Neu-Login nötig.
+- Per Redeploy in Coolify ausgerollt (Container 20261108T092052).
