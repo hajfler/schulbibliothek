@@ -89,15 +89,16 @@ async function graphGetAll<T>(url: string, extraHeaders: Record<string, string> 
 
 /** Gruppen suchen: Anzeigename oder Beschreibung enthält den Suchbegriff (lokal gefiltert, ohne Gross-/Kleinschreibung). */
 export async function searchGroups(search: string): Promise<GraphGroup[]> {
+  // Kein $orderby: Graph verlangt dafür ConsistencyLevel+$count (Advanced Query), sortiert wird lokal
   const params = new URLSearchParams({
     $select: "id,displayName,description,mail",
     $top: "999",
-    $orderby: "displayName",
   });
   const groups = await graphGetAll<GraphGroup>(`${GRAPH}/groups?${params.toString()}`);
   const term = search.trim().toLowerCase();
   return groups
     .filter((g) => !term || `${g.displayName ?? ""} ${g.description ?? ""}`.toLowerCase().includes(term))
+    .sort((a, b) => (a.displayName ?? "").localeCompare(b.displayName ?? "", "de"))
     .map((g) => ({
       id: g.id,
       displayName: g.displayName,
