@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 
@@ -13,6 +14,11 @@ interface ModalProps {
 }
 
 export function Modal({ open, onClose, title, children, size = "md" }: ModalProps) {
+  // Dialoge werden an document.body gehängt: aus der Seitenleiste (sticky, eigener
+  // Stapelkontext) geöffnet lägen sie sonst hinter den Inhalten der Hauptspalte.
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+
   React.useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
@@ -30,7 +36,7 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
     return () => window.removeEventListener("keydown", handleKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
   const sizes = {
     sm: "max-w-sm",
@@ -39,7 +45,7 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
     xl: "max-w-4xl",
   };
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={onClose}
@@ -73,6 +79,7 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
         )}
         <div className="overflow-y-auto max-h-[80vh]">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

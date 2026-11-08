@@ -105,3 +105,18 @@ daher kein Laufzeittest.
   Rolling-Update einmal Client-Fehler/ungestylte Seite (Chunk-Wechsel), nach
   Reload sauber. Sichtkontrolle: Einrollen gestaffelt, Verwaltung klappt weich,
   Rollenfilter zeigt 4 Bibliothekare.
+
+## Nachtrag 08.11.2026 10:30 – Darkmode, Version 1.1.0, Benutzerseite wie LMI
+- Commit 0da2800: next-themes (Klasse «dark» am html), Umschalter «Erscheinungsbild»
+  in der Seitenleiste; feste Hex-Klassen werden im dunklen Schema per unlayered CSS
+  auf die Variablen umgelenkt (globals.css, Abschnitt «Dunkles Farbschema»).
+  Seitenleisten-Fuss wie LMI (Schulhaus-Umschalter, Rollen-Chip, Benutzer,
+  Erscheinungsbild, Abmelden, Versions-Knopf mit Changelog aus src/lib/changelog.ts).
+  Benutzerseite als dichte Tabelle mit Rollen-Pille und Schulhaus-Chips.
+- Deploy per Redeploy (Richard, Container 20261108T102450). Sichtkontrolle hell und
+  dunkel ok: Dashboard, Bücher, Benutzer, Schulhaus-Dialog.
+- Befund: Dialog «Was ist neu» lag hinter den Karten (aus der sticky Seitenleiste
+  geöffnet → eigener Stapelkontext). Fix: Modal rendert per createPortal an
+  document.body. Noch nicht deployt.
+- Unmittelbar nach einem Rolling-Update liefert die Seite kurz ungestyltes HTML
+  (alter und neuer Container parallel hinter Traefik), nach 10–20 s wieder sauber.
