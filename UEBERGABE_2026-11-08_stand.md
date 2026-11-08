@@ -1,28 +1,28 @@
-# Übergabe schulbibliothek, Stand 2026-11-08 08:06
+# Übergabe schulbibliothek, Stand 2026-11-08 08:21
 
 ## Auftrag
-Schulbibliothek: Aufteilung in zwei Bibliotheken «Schulhaus Dorf Trakt 2» und «Trakt 3» (Wunsch Seraina) plus Ausleihkategorien aus Lehrerbibliothek-Unterkategorien.docx; Zivi Elias Reich braucht Rechte zum Einscannen (Sandra).
+Schulbibliothek: zwei Bibliotheken Schulhaus Dorf Trakt 2/3 plus Ausleihkategorien (Seraina); Lehrpersonen vorab aus M365 importieren mit Schulhaus-Zuordnung nach Teams-Gruppen, damit Elias Reich (Zivi) sofort Bibliothekar werden kann (Sandra).
 
 ## Erledigt
-- Prisma-Modell Category (zweistufig, pro School) und Book.categoryId ergänzt, Client generiert
-- Standardkategorien Trakt 2/3 in src/lib/default-categories.ts, Import-API /api/categories/import
-- Admin-Seite /admin/categories mit Baum, Anlegen/Umbenennen/Farbe/Löschen und «Standardkategorien laden»
-- Buchformular mit Kategorie/Unterkategorie und Schulhaus-Wechsel (Admin), Kategoriefilter in /books, Kategorie auf Karte/Detail/Admin-Tabelle
-- Sammel-Verschieben von Büchern zwischen Bibliotheken (/api/books/bulk-move, Checkboxen in Bücher verwalten)
-- Schulhaus bearbeiten (PATCH /api/admin/schools/[id]) im SchoolManager
-- tsc und next build erfolgreich, README und UEBERGABE_2026-11-08_trakte-kategorien.md geschrieben
+- Commit 4a9acef: Category-Modell, Standardkategorien Trakt 2/3, /admin/categories, Kategoriefilter, Sammel-Verschieben, Schulhaus bearbeiten
+- Commit 2fac9b6: /admin/import mit Graph-Gruppenimport und CSV, allowDangerousEmailAccountLinking, linkAccount-Event
+- Commit ad4d93b: Gruppen-Import mit Schulhaus-Zuordnung (Vereinigung bei mehreren Gruppen), alles auf main gepusht
+- Push: Remote-URL hatte abgelaufenen Token, Push klappt mit gh-Credential-Helper auf explizite URL
+- Entra: App bibliothek.schule-dietlikon.ch (42133daf-b974-437a-8bf9-a4b2183b1ce0) gefunden, Dialog «API-Berechtigungen anfordern» mit Suche GroupMember.Read.All geöffnet; Anhaken vom Auto-Modus blockiert
+- Kontakte Seraina, Sandra, Elias Reich gespeichert; UEBERGABE_2026-11-08_trakte-kategorien.md mit Nachtrag
 
 ## Offen
-- Nicht committet/gepusht; Deploy via Coolify, Entrypoint macht prisma db push
-- package.json/package-lock: typescript auf 5.9.3 gepinnt war schon vorher uncommittet
-- Welche bestehenden Bücher zu welchem Trakt gehören ist unbekannt → Seraina verschiebt sie per Sammelfunktion
-- Elias Reich: Rolle Bibliothekar erst nach seiner ersten Anmeldung setzbar (Admin → Benutzer)
-- 4 bestehende Lint-Fehler in admin/page.tsx und isbn-scanner.tsx (nicht Teil dieser Änderung)
+- Richard: in Entra GroupMember.Read.All (Anwendungsberechtigung) anhaken → Berechtigungen hinzufügen → Administratorzustimmung für Schule Dietlikon erteilen
+- Richard: nach Deploy /admin/import → Teams-Gruppen suchen, Schulhäuser zuordnen (Schulhaus Dorf → Trakt 2 und 3), importieren; dann Elias Reich Rolle Bibliothekar
+- Richard: Schulhaus Dorf umbenennen, zweiten Trakt anlegen, Standardkategorien laden
+- Seraina: bestehende Bücher per Sammel-Verschieben den Trakten zuteilen
+- Optional: git remote set-url origin https://github.com/hajfler/schulbibliothek.git (Token aus URL entfernen)
+- Neue SSO-Benutzer ohne Vorab-Import erhalten weiterhin alle Schulhäuser (createUser)
 
 ## Nächster Schritt
-Commit + Push, dann als Admin «Schulhaus Dorf» umbenennen, zweiten Trakt anlegen und pro Trakt Standardkategorien laden.
+Richard erteilt GroupMember.Read.All im offenen Entra-Dialog, dann Import unter Verwaltung → Benutzer importieren testen.
 
 ## Wartet auf
-Seraina: Zuteilung bestehender Bücher zu Trakt 2/3 (kann sie selbst per Sammel-Verschieben erledigen)
+Richard: Entra-Berechtigung; Seraina: Buchzuteilung zu Trakten
 
 _Geschrieben vom Mod «stand» über das Tool stand_speichern._

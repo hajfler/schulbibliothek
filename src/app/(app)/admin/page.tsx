@@ -9,6 +9,16 @@ import {
 import Link from "next/link";
 import { TriggerRemindersButton } from "@/components/admin/trigger-reminders-button";
 
+/** Zeitpunkt in einer Stunde (für fällige Erinnerungen). */
+function inOneHour(): Date {
+  return new Date(Date.now() + 60 * 60 * 1000);
+}
+
+/** Tage, die eine Ausleihe überfällig ist. */
+function daysOverdue(dueDate: Date | string): number {
+  return Math.abs(Math.ceil((new Date(dueDate).getTime() - Date.now()) / 86400000));
+}
+
 export default async function AdminPage() {
   const session = await auth();
   if (!session || !["LIBRARIAN", "ADMIN"].includes(session.user.role)) {
@@ -58,7 +68,7 @@ export default async function AdminPage() {
     prisma.reminder.count({
       where: {
         status: "PENDING",
-        scheduledAt: { lte: new Date(Date.now() + 60 * 60 * 1000) },
+        scheduledAt: { lte: inOneHour() },
         loan: { status: { in: ["ACTIVE", "OVERDUE"] }, ...bookSchoolFilter },
       },
     }),
@@ -111,9 +121,7 @@ export default async function AdminPage() {
             </div>
             <div className="space-y-3">
               {overdueLoans.map((loan) => {
-                const days = Math.abs(
-                  Math.ceil((new Date(loan.dueDate).getTime() - Date.now()) / 86400000)
-                );
+                const days = daysOverdue(loan.dueDate);
                 return (
                   <div key={loan.id} className="flex items-center gap-3 p-3 bg-[#FFF8F8] rounded-xl border border-[#FFE9E9]">
                     <div className="flex-1 min-w-0">

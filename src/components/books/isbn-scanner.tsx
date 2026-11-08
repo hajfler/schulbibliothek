@@ -7,12 +7,67 @@ interface ISBNScannerProps {
   onScan: (isbn: string) => void;
 }
 
+/** Minimale Typen für die experimentelle BarcodeDetector-API (Chrome, Edge, Android). */
+interface DetectedBarcode {
+  rawValue: string;
+}
+interface BarcodeDetectorLike {
+  detect(source: HTMLVideoElement): Promise<DetectedBarcode[]>;
+}
+type BarcodeDetectorConstructor = new (options: { formats: string[] }) => BarcodeDetectorLike;
+
 export function ISBNScanner({ onScan }: ISBNScannerProps) {
   const [open, setOpen] = React.useState(false);
   const [error, setError] = React.useState("");
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const streamRef = React.useRef<MediaStream | null>(null);
   const animFrameRef = React.useRef<number>(0);
+
+  const stopCamera = React.useCallback(() => {
+    cancelAnimationFrame(animFrameRef.current);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+  }, []);
+
+  // Selbstreferenz der Scan-Schleife über eine Ref, damit der Callback sich nicht selbst referenziert
+  const scanFrameRef = React.useRef<() => void>(() => {});
+
+  const scanFrame = React.useCallback(() => {
+    if (!videoRef.current) return;
+
+    // Use BarcodeDetector API if available (Chrome, Edge, Android)
+    const BarcodeDetectorCtor = (window as unknown as { BarcodeDetector?: BarcodeDetectorConstructor }).BarcodeDetector;
+    if (BarcodeDetectorCtor) {
+      const detector = new BarcodeDetectorCtor({
+        formats: ["ean_13", "ean_8", "isbn"],
+      });
+      detector
+        .detect(videoRef.current)
+        .then((barcodes) => {
+          if (barcodes.length > 0) {
+            const isbn = barcodes[0].rawValue;
+            stopCamera();
+            setOpen(false);
+            onScan(isbn);
+            return;
+          }
+          animFrameRef.current = requestAnimationFrame(() => scanFrameRef.current());
+        })
+        .catch(() => {
+          animFrameRef.current = requestAnimationFrame(() => scanFrameRef.current());
+        });
+    } else {
+      // Fallback: show manual input note
+      setError("Automatische Erkennung nicht verfügbar. Bitte ISBN manuell eingeben.");
+      stopCamera();
+    }
+  }, [onScan, stopCamera]);
+
+  React.useEffect(() => {
+    scanFrameRef.current = scanFrame;
+  }, [scanFrame]);
 
   const startCamera = React.useCallback(async () => {
     setError("");
@@ -29,45 +84,7 @@ export function ISBNScanner({ onScan }: ISBNScannerProps) {
     } catch {
       setError("Kamera konnte nicht gestartet werden. Bitte Kamerazugriff erlauben.");
     }
-  }, []);
-
-  const stopCamera = React.useCallback(() => {
-    cancelAnimationFrame(animFrameRef.current);
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
-  }, []);
-
-  const scanFrame = React.useCallback(() => {
-    if (!videoRef.current) return;
-
-    // Use BarcodeDetector API if available (Chrome, Edge, Android)
-    if ("BarcodeDetector" in window) {
-      const detector = new (window as any).BarcodeDetector({
-        formats: ["ean_13", "ean_8", "isbn"],
-      });
-      detector
-        .detect(videoRef.current)
-        .then((barcodes: Array<{ rawValue: string }>) => {
-          if (barcodes.length > 0) {
-            const isbn = barcodes[0].rawValue;
-            stopCamera();
-            setOpen(false);
-            onScan(isbn);
-            return;
-          }
-          animFrameRef.current = requestAnimationFrame(scanFrame);
-        })
-        .catch(() => {
-          animFrameRef.current = requestAnimationFrame(scanFrame);
-        });
-    } else {
-      // Fallback: show manual input note
-      setError("Automatische Erkennung nicht verfügbar. Bitte ISBN manuell eingeben.");
-      stopCamera();
-    }
-  }, [onScan, stopCamera]);
+  }, [scanFrame]);
 
   const handleOpen = () => {
     setOpen(true);
