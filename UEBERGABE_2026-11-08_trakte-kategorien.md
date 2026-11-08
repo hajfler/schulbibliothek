@@ -120,3 +120,10 @@ daher kein Laufzeittest.
   document.body. Noch nicht deployt.
 - Unmittelbar nach einem Rolling-Update liefert die Seite kurz ungestyltes HTML
   (alter und neuer Container parallel hinter Traefik), nach 10–20 s wieder sauber.
+
+## Nachtrag 08.11.2026 10:45 – Logo auf Login-Seite
+- Befund: Im Darkmode fehlte das Logo auf /login (Platzhalter-Symbol). Die Middleware
+  leitete alle Anfragen ohne Sitzung auf /login um, auch /logo-dark.svg; das helle
+  Logo kam nur aus dem Browser-Cache.
+- Fix de463be: statische Dateien (svg, png, ico, webmanifest, Fonts …) sind ohne
+  Sitzung abrufbar. Zusammen mit c92f15b (Modal-Portal) noch zu deployen.
