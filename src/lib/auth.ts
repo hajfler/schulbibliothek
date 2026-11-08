@@ -45,14 +45,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   callbacks: {
     async jwt({ token, user }) {
-      // Runs on sign-in (user is set) — enrich token with DB data.
-      // Role changes in the DB take effect on next sign-in.
+      // Beim Login die ID übernehmen, danach Rolle und aktives Schulhaus bei jeder
+      // Anfrage frisch aus der DB lesen: Schulhaus-Wechsel (SchoolSwitcher) und
+      // Rollenänderungen durch Admins greifen so sofort, nicht erst beim nächsten Login.
       if (user?.id) {
+        token.id = user.id;
+      }
+      const userId = (token.id as string | undefined) ?? (token.sub as string | undefined);
+      if (userId) {
         const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
+          where: { id: userId },
           select: { role: true, schoolId: true },
         });
-        token.id = user.id;
+        token.id = userId;
         token.role = dbUser?.role ?? "USER";
         token.schoolId = dbUser?.schoolId ?? null;
       }
