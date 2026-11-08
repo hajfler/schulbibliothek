@@ -42,3 +42,20 @@ daher kein Laufzeittest.
    Rolle greift bei der nächsten Anmeldung.
 5. Seraina: bestehende Bücher in «Bücher verwalten» anhaken und in den
    richtigen Trakt verschieben, Kategorien beim Bearbeiten zuweisen.
+
+## Nachtrag 08.11.2026 abends – Benutzer-Import aus M365
+- Commit 4a9acef (Trakte/Kategorien) und 2fac9b6 (Import) gepusht, Remote-URL
+  enthielt einen abgelaufenen Token; Push klappt mit
+  `git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push https://github.com/hajfler/schulbibliothek.git HEAD:main`
+  oder nach `git remote set-url origin https://github.com/hajfler/schulbibliothek.git`.
+- `/admin/import` (Admin): Direktimport der Mitglieder einer Teams-/Entra-Gruppe
+  via Graph (Client-Credentials) mit Zuordnung zu Schulhäusern; bestehende
+  Benutzer erhalten fehlende Schulhäuser dazu (Vereinigung). Alternativ CSV.
+- Vorab angelegte Benutzer: `allowDangerousEmailAccountLinking` im Provider,
+  `linkAccount`-Event weist Schulhäuser zu, falls noch keine vorhanden.
+- Voraussetzung Graph: App «bibliothek.schule-dietlikon.ch»
+  (42133daf-b974-437a-8bf9-a4b2183b1ce0) braucht Anwendungsberechtigung
+  `GroupMember.Read.All` + Admin-Einwilligung (Dialog im Entra-Portal war offen,
+  Klick vom Auto-Modus blockiert → Richard manuell).
+- Hinweis: Neue Benutzer, die ohne Vorab-Import per SSO kommen, erhalten
+  weiterhin automatisch alle Schulhäuser (createUser-Event).

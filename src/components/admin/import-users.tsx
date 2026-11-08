@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/toast";
 
 interface ImportResult {
   created: number;
+  updated?: number;
   skipped: number;
   errors: { row: number; message: string; email?: string }[];
   total: number;

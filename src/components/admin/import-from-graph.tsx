@@ -18,6 +18,14 @@ interface PreviewMember {
   email: string;
   name: string | null;
   exists: boolean;
+  /** Anzahl gewählter Schulhäuser, die dem Benutzer noch fehlen */
+  missingSchools: number;
+}
+
+interface School {
+  id: string;
+  name: string;
+  color: string | null;
 }
 
 interface Preview {
@@ -28,6 +36,7 @@ interface Preview {
 
 interface ImportResult {
   created: number;
+  updated: number;
   skipped: number;
   errors: { row: number; message: string; email?: string }[];
   total: number;
@@ -38,9 +47,10 @@ interface ApiError {
   hint?: string;
 }
 
-/** Import von Benutzern direkt aus einer Entra-Gruppe über Microsoft Graph. */
-export function ImportFromGraph() {
+/** Import von Benutzern direkt aus einer Entra-/Teams-Gruppe über Microsoft Graph, mit Schulhaus-Zuordnung. */
+export function ImportFromGraph({ schools }: { schools: School[] }) {
   const { addToast } = useToast();
+  const [schoolIds, setSchoolIds] = React.useState<string[]>([]);
   const [search, setSearch] = React.useState("Lehrpersonen");
   const [groups, setGroups] = React.useState<GraphGroup[] | null>(null);
   const [searching, setSearching] = React.useState(false);
@@ -73,17 +83,18 @@ export function ImportFromGraph() {
     }
   };
 
-  const loadPreview = async (group: GraphGroup) => {
+  const loadPreview = async (group: GraphGroup, ids: string[] = schoolIds) => {
     setSelected(group);
     setPreview(null);
     setResult(null);
     setApiError(null);
+    if (ids.length === 0) return;
     setPreviewing(true);
     try {
       const res = await fetch("/api/admin/import/graph", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groupId: group.id, preview: true }),
+        body: JSON.stringify({ groupId: group.id, schoolIds: ids, preview: true }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -98,15 +109,21 @@ export function ImportFromGraph() {
     }
   };
 
+  const toggleSchool = (id: string) => {
+    const next = schoolIds.includes(id) ? schoolIds.filter((s) => s !== id) : [...schoolIds, id];
+    setSchoolIds(next);
+    if (selected) loadPreview(selected, next);
+  };
+
   const runImport = async () => {
-    if (!selected) return;
+    if (!selected || schoolIds.length === 0) return;
     setImporting(true);
     setApiError(null);
     try {
       const res = await fetch("/api/admin/import/graph", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groupId: selected.id }),
+        body: JSON.stringify({ groupId: selected.id, schoolIds }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -115,11 +132,13 @@ export function ImportFromGraph() {
       }
       setResult(data);
       addToast(
-        data.created > 0 ? `${data.created} Benutzer importiert` : "Keine neuen Benutzer importiert",
-        data.created > 0 ? "success" : "info"
+        data.created + data.updated > 0
+          ? `${data.created} neu, ${data.updated} ergänzt`
+          : "Keine Änderungen",
+        data.created + data.updated > 0 ? "success" : "info"
       );
-      // Vorschau aktualisieren: alle sind jetzt vorhanden
-      setPreview((p) => (p ? { ...p, members: p.members.map((m) => ({ ...m, exists: true })) } : p));
+      // Vorschau aktualisieren: alle sind jetzt vorhanden und vollständig zugeordnet
+      setPreview((p) => (p ? { ...p, members: p.members.map((m) => ({ ...m, exists: true, missingSchools: 0 })) } : p));
     } catch {
       setApiError({ error: "Verbindung fehlgeschlagen" });
     } finally {
@@ -128,6 +147,9 @@ export function ImportFromGraph() {
   };
 
   const newCount = preview?.members.filter((m) => !m.exists).length ?? 0;
+  const updateCount = preview?.members.filter((m) => m.exists && m.missingSchools > 0).length ?? 0;
+  const unchangedCount = (preview?.members.length ?? 0) - newCount - updateCount;
+  const schoolNames = schools.filter((s) => schoolIds.includes(s.id)).map((s) => s.name).join(", ");
 
   return (
     <div className="card p-6 space-y-5">
@@ -137,9 +159,42 @@ export function ImportFromGraph() {
           <h2 className="text-[18px] font-bold text-[#1C1C1E]">Direkt aus Microsoft 365 importieren</h2>
         </div>
         <p className="text-[14px] text-[#8E8E93] mt-1">
-          Sucht eine Gruppe in Entra ID (z.B. «Lehrpersonen») und legt deren Mitglieder an. Deaktivierte
-          Konten und bereits vorhandene Benutzer werden übersprungen.
+          Sucht eine Teams-/Entra-Gruppe (z.B. «Schulhaus Dorf») und weist deren Mitglieder den gewählten
+          Schulhäusern zu. Neue Benutzer werden angelegt, bestehende erhalten fehlende Schulhäuser dazu.
+          Wer in mehreren Gruppen ist, bekommt so Zugriff auf alle entsprechenden Bibliotheken.
+          Deaktivierte Konten werden ausgelassen.
         </p>
+      </div>
+
+      {/* School mapping */}
+      <div className="bg-[#F2F2F7] rounded-xl p-4">
+        <p className="text-[12px] font-semibold text-[#8E8E93] uppercase tracking-wide mb-2">
+          Mitglieder dieser Gruppe erhalten Zugriff auf
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {schools.map((s) => {
+            const on = schoolIds.includes(s.id);
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => toggleSchool(s.id)}
+                className={cn(
+                  "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-medium border transition-all",
+                  on
+                    ? "bg-[#007AFF] text-white border-[#007AFF] shadow-sm"
+                    : "bg-white text-[#3A3A3C] border-[#C6C6C8] hover:border-[#007AFF]"
+                )}
+              >
+                <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: on ? "#fff" : (s.color ?? "#8E8E93") }} />
+                {s.name}
+              </button>
+            );
+          })}
+        </div>
+        {schoolIds.length === 0 && (
+          <p className="text-[12px] text-[#FF9500] mt-2">Mindestens ein Schulhaus wählen.</p>
+        )}
       </div>
 
       {/* Group search */}
@@ -206,37 +261,48 @@ export function ImportFromGraph() {
         )
       )}
 
+      {selected && schoolIds.length === 0 && (
+        <p className="text-[13px] text-[#FF9500]">Wähle oben die Schulhäuser für «{selected.displayName}», dann erscheint die Vorschau.</p>
+      )}
+
       {/* Preview */}
       {selected && preview && (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3 bg-[#F2F2F7] rounded-xl p-4">
             <div>
-              <p className="text-[14px] font-semibold text-[#1C1C1E]">{selected.displayName}</p>
+              <p className="text-[14px] font-semibold text-[#1C1C1E]">{selected.displayName} → {schoolNames}</p>
               <p className="text-[13px] text-[#3A3A3C] mt-0.5">
-                {preview.members.length} Mitglieder · {newCount} neu · {preview.members.length - newCount} bereits vorhanden
+                {preview.members.length} Mitglieder · {newCount} neu · {updateCount} erhalten Schulhäuser dazu · {unchangedCount} unverändert
                 {preview.disabled > 0 && ` · ${preview.disabled} deaktiviert (werden ausgelassen)`}
               </p>
             </div>
-            <Button onClick={runImport} loading={importing} disabled={newCount === 0}>
+            <Button onClick={runImport} loading={importing} disabled={newCount + updateCount === 0}>
               <UserPlus size={15} />
-              {newCount} Benutzer importieren
+              {newCount + updateCount} Benutzer übernehmen
             </Button>
           </div>
 
           <div className="border border-[#E5E5EA] rounded-xl divide-y divide-[#F2F2F7] max-h-80 overflow-y-auto">
             {preview.members.map((m) => (
               <div key={m.email} className="flex items-center gap-3 px-4 py-2">
-                {m.exists ? (
-                  <UserCheck size={15} className="text-[#34C759] flex-shrink-0" />
-                ) : (
+                {!m.exists ? (
                   <UserPlus size={15} className="text-[#007AFF] flex-shrink-0" />
+                ) : m.missingSchools > 0 ? (
+                  <UserPlus size={15} className="text-[#FF9500] flex-shrink-0" />
+                ) : (
+                  <UserCheck size={15} className="text-[#34C759] flex-shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-medium text-[#1C1C1E] truncate">{m.name ?? m.email}</p>
                   <p className="text-[12px] text-[#8E8E93] truncate">{m.email}</p>
                 </div>
-                <span className={cn("text-[11px] font-semibold", m.exists ? "text-[#8E8E93]" : "text-[#007AFF]")}>
-                  {m.exists ? "vorhanden" : "neu"}
+                <span
+                  className={cn(
+                    "text-[11px] font-semibold",
+                    !m.exists ? "text-[#007AFF]" : m.missingSchools > 0 ? "text-[#FF9500]" : "text-[#8E8E93]"
+                  )}
+                >
+                  {!m.exists ? "neu" : m.missingSchools > 0 ? `+${m.missingSchools} Schulhaus` : "unverändert"}
                 </span>
               </div>
             ))}
@@ -249,10 +315,10 @@ export function ImportFromGraph() {
           <CheckCircle size={18} className="text-[#28A745] flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-[14px] font-semibold text-[#1C6A2E]">
-              {result.created} von {result.total} Benutzern importiert
+              {result.created} neu angelegt, {result.updated} mit Schulhäusern ergänzt
             </p>
             {result.skipped > 0 && (
-              <p className="text-[13px] text-[#3A3A3C] mt-0.5">{result.skipped} bereits vorhanden (übersprungen)</p>
+              <p className="text-[13px] text-[#3A3A3C] mt-0.5">{result.skipped} unverändert</p>
             )}
             {result.errors.length > 0 && (
               <p className="text-[13px] text-[#FF3B30] mt-0.5">{result.errors.length} Fehler</p>

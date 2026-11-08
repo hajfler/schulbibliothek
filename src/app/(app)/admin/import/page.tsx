@@ -3,12 +3,18 @@ import { redirect } from "next/navigation";
 import { ImportUsers } from "@/components/admin/import-users";
 import { ImportFromGraph } from "@/components/admin/import-from-graph";
 import { ToastProvider } from "@/components/ui/toast";
+import { prisma } from "@/lib/db";
 
 export default async function AdminImportPage() {
   const session = await auth();
   if (!session || session.user.role !== "ADMIN") {
     redirect("/dashboard");
   }
+
+  const schools = await prisma.school.findMany({
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, color: true },
+  });
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -20,7 +26,7 @@ export default async function AdminImportPage() {
       </div>
 
       <ToastProvider>
-        <ImportFromGraph />
+        <ImportFromGraph schools={schools} />
         <ImportUsers />
       </ToastProvider>
     </div>
