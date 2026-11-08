@@ -49,7 +49,7 @@ body {
   border-radius: 6px;
 }
 
-/* Smooth transitions */
+/* Sanfte Farbübergänge als Grundton; gezielte Bewegung steht im Abschnitt «Bewegung» */
 * { transition-property: color, background-color, border-color, opacity;
     transition-duration: 150ms; }
 
@@ -63,4 +63,266 @@ body {
 /* Input */
 input, select, textarea {
   font-family: inherit;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Bewegung
+   Drei Kurven, wie auf dem Z2G KI-Server: --ease für Standardübergänge,
+   --brems für schnelles Hereinkommen mit weichem Ausrollen, --spring mit
+   leichtem Überschwingen. Alles respektiert prefers-reduced-motion.
+
+   Arbeitsteilung der Eigenschaften, damit sich nichts in die Quere kommt:
+     translate  → Einrollen beim Erscheinen und Hover
+     scale      → Klick-Feedback
+     transform  → ausschliesslich Parallax (--py, vom MotionProvider gesetzt)
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  --ease:   cubic-bezier(0.2, 0.7, 0.2, 1);
+  --brems:  cubic-bezier(0.33, 1, 0.68, 1);
+  --spring: cubic-bezier(0.34, 1.4, 0.5, 1);
+  --ease-soft: var(--brems);   /* ältere Namen bleiben gültig */
+  --ease-back: var(--spring);
+  --motion-fast: 160ms;
+  --motion: 300ms;
+  --motion-slow: 620ms;
+  --roll-step: 45ms;           /* Staffelung zwischen Geschwistern */
+}
+
+/* ── Einrollen beim Erscheinen ───────────────────────────────────── */
+
+/* Zwei Animationen parallel: kurzes Einblenden, längere Bewegung, die
+   ausrollt, wenn das Element längst sichtbar ist. Läuft rein in CSS beim
+   ersten Bild — auch vor dem Hydrieren, auch ohne JavaScript. */
+@keyframes roll-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes roll-move {
+  from { translate: 0 var(--roll-dist, 18px); }
+  to   { translate: 0 0; }
+}
+
+main :is(
+  .card,
+  [data-roll],
+  [class*="rounded-2xl"],
+  tbody > tr,
+  [class*="space-y-1"] > *,
+  [class*="space-y-2"] > *,
+  [class*="space-y-3"] > *,
+  [class*="divide-y"] > *
+):not(button, input, select, textarea, [data-motion="alert"], [data-motion="page"], [data-roll] *) {
+  animation:
+    roll-fade 340ms var(--ease) backwards,
+    roll-move 640ms var(--brems) backwards;
+  animation-delay: calc(var(--i, 0) * var(--roll-step));
+}
+/* Weg: Karten spürbar, Zeilen dezent (Reihenfolge entscheidet, gleiche Spezifität) */
+main :is(.card, [data-roll], [class*="rounded-2xl"]) { --roll-dist: 22px; }
+main :is(tbody > tr, [class*="space-y-1"] > *, [class*="space-y-2"] > *, [class*="space-y-3"] > *, [class*="divide-y"] > *) { --roll-dist: 14px; }
+
+/* Staffelung nach Position unter den Geschwistern — rein in CSS, damit
+   sie schon beim ersten Bild stimmt. Ab dem 15. Element gleich weit. */
+main :nth-child(1)  { --i: 0; }   main :nth-child(2)  { --i: 1; }
+main :nth-child(3)  { --i: 2; }   main :nth-child(4)  { --i: 3; }
+main :nth-child(5)  { --i: 4; }   main :nth-child(6)  { --i: 5; }
+main :nth-child(7)  { --i: 6; }   main :nth-child(8)  { --i: 7; }
+main :nth-child(9)  { --i: 8; }   main :nth-child(10) { --i: 9; }
+main :nth-child(11) { --i: 10; }  main :nth-child(12) { --i: 11; }
+main :nth-child(13) { --i: 12; }  main :nth-child(14) { --i: 13; }
+main :nth-child(n+15) { --i: 14; }
+
+/* Elemente ausserhalb des Sichtbereichs wartet der MotionProvider ab und
+   lässt sie erst beim Heranscrollen einrollen (Staffelung dann je Schub). */
+[data-reveal="out"] {
+  opacity: 0 !important;
+  animation: none !important;
+}
+
+/* ── Parallax ────────────────────────────────────────────────────── */
+
+/* Seitenkopf: wandert stärker und blendet leicht aus */
+[data-parallax] {
+  transform: translate3d(0, var(--parallax-y, 0px), 0);
+  will-change: transform;
+}
+
+/* Karten und Listenzeilen: --py wird beim Scrollen vom MotionProvider gesetzt */
+[data-parallax-item="card"],
+[data-parallax-item="list"] {
+  transform: translate3d(0, var(--py, 0px), 0);
+}
+/* Tabellenzeilen: die Zellen wandern, die Zeile selbst bleibt im Tabellenraster */
+tbody > tr[data-parallax-item] > td {
+  transform: translateY(var(--py, 0px));
+}
+
+/* ── Hover mit Abbremsung ────────────────────────────────────────── */
+
+[data-motion="card"] {
+  transition:
+    translate 260ms var(--ease),
+    box-shadow 260ms var(--ease),
+    border-color 260ms var(--ease),
+    background-color var(--motion-fast) var(--ease);
+}
+[data-motion="card"]:hover {
+  translate: 0 -2px;
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.28);
+}
+.dark [data-motion="card"]:hover {
+  box-shadow: 0 12px 28px -12px rgba(0, 0, 0, 0.7);
+}
+
+/* Schaltflächen und Links federn leicht */
+button,
+a[class*="rounded"],
+[role="button"] {
+  transition:
+    scale var(--motion-fast) var(--ease),
+    background-color var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-fast) var(--ease),
+    opacity var(--motion-fast) var(--ease);
+}
+button:not(:disabled):active,
+a[class*="rounded"]:active {
+  scale: 0.97;
+  transition-duration: 90ms;
+}
+
+/* Tabellen- und Listenzeilen */
+tbody tr,
+[data-parallax-item="list"] {
+  transition: background-color var(--motion-fast) var(--ease);
+}
+
+/* ── Aufklappen ──────────────────────────────────────────────────── */
+
+/* Höhe, Einblenden und ein leichtes Absenken der Einträge laufen gemeinsam
+   auf --brems aus; beim Schliessen zieht sich alles etwas zügiger zusammen. */
+.collapsible {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 360ms var(--brems),
+    opacity 200ms var(--ease);
+}
+.collapsible[data-open="true"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows 480ms var(--brems),
+    opacity 320ms var(--ease) 60ms;
+}
+.collapsible > * {
+  overflow: hidden;
+  min-height: 0;
+}
+.collapsible > * > * {
+  translate: 0 -8px;
+  transition: translate 360ms var(--brems);
+}
+.collapsible[data-open="true"] > * > * {
+  translate: 0 0;
+  transition: translate 480ms var(--brems) 40ms;
+}
+
+/* Pfeil der Aufklapp-Schaltfläche dreht auf derselben Kurve */
+.chevron {
+  transition: rotate 480ms var(--brems);
+}
+.chevron[data-open="true"] {
+  rotate: 180deg;
+}
+
+/* ── Modale Fenster ──────────────────────────────────────────────── */
+
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.9) translateY(28px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+[data-motion="modal"] {
+  animation: modal-in 420ms var(--brems) both;
+}
+[data-motion="backdrop"] {
+  animation: backdrop-in 200ms var(--ease) both;
+}
+
+/* ── Warnmeldungen ───────────────────────────────────────────────── */
+
+@keyframes alert-in {
+  from { opacity: 0; transform: translate3d(0, -10px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes alert-attention {
+  0%, 82%, 100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+  88%           { box-shadow: 0 0 0 6px rgba(255, 59, 48, 0.16); }
+  94%           { box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.08); }
+}
+[data-motion="alert"] {
+  animation:
+    alert-in 420ms var(--brems) both,
+    alert-attention 6s var(--ease) 1.2s infinite;
+}
+[data-motion="alert"]:hover {
+  animation-play-state: running, paused;
+}
+
+/* Symbol in der Warnmeldung schwingt kurz an */
+@keyframes bell-swing {
+  0%, 70%, 100% { transform: rotate(0deg); }
+  76%           { transform: rotate(-11deg); }
+  82%           { transform: rotate(9deg); }
+  88%           { transform: rotate(-5deg); }
+  94%           { transform: rotate(2deg); }
+}
+[data-motion="alert"] svg:first-of-type {
+  animation: bell-swing 6s var(--ease) 1.2s infinite;
+  transform-origin: 50% 15%;
+}
+
+/* ── Seitenwechsel ───────────────────────────────────────────────── */
+
+@keyframes page-in {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+[data-motion="page"] {
+  animation: page-in 320ms var(--brems) both;
+}
+
+/* ── Hinweise (Toasts) ───────────────────────────────────────────── */
+
+@keyframes toast-in {
+  from { opacity: 0; translate: 24px 0; }
+  to   { opacity: 1; translate: 0 0; }
+}
+[data-motion="toast"] {
+  animation: toast-in 420ms var(--brems) both;
+}
+
+/* ── Rücksicht auf Bewegungsempfindlichkeit ──────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  [data-reveal] {
+    opacity: 1 !important;
+  }
+  [data-parallax],
+  [data-parallax-item],
+  tbody > tr[data-parallax-item] > td {
+    transform: none !important;
+    translate: none !important;
+  }
 }

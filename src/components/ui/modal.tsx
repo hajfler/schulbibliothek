@@ -45,7 +45,7 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
       onClick={onClose}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" data-motion="backdrop" />
 
       {/* Modal */}
       <div
@@ -56,6 +56,7 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
+        data-motion="modal"
       >
         {/* Header */}
         {title && (

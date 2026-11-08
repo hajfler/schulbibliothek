@@ -57,6 +57,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
 
   return (
     <div
+      data-motion="toast"
       className={cn(
         "pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl shadow-lg",
         "bg-white border border-[#E5E5EA] min-w-[280px] max-w-sm",

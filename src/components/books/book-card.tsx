@@ -33,11 +33,11 @@ const typeLabels: Record<string, string> = {
 
 export function BookCard({ book, isStaff }: BookCardProps) {
   return (
-    <Link href={`/books/${book.id}`} className="group">
+    <Link href={`/books/${book.id}`} className="group block" data-roll data-motion="card">
       <div
         className={cn(
           "relative rounded-2xl overflow-hidden shadow-sm",
-          "group-hover:shadow-lg group-hover:scale-[1.02] transition-all duration-200"
+          "group-hover:shadow-lg transition-shadow duration-300"
         )}
         style={{ aspectRatio: "2/3" }}
       >

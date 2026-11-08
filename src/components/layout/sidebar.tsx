@@ -67,15 +67,10 @@ export function Sidebar({ session }: SidebarProps) {
               className="w-full flex items-center justify-between px-3 py-2 text-[11px] font-semibold text-[#8E8E93] uppercase tracking-wider hover:text-[#3A3A3C] transition-colors"
             >
               Verwaltung
-              <ChevronDown
-                size={14}
-                className={cn(
-                  "transition-transform",
-                  adminExpanded && "rotate-180"
-                )}
-              />
+              <ChevronDown size={14} className="chevron" data-open={adminExpanded} />
             </button>
-            {adminExpanded && (
+            <div className="collapsible" data-open={adminExpanded}>
+              <div>
               <div className="space-y-0.5 mt-1">
                 {adminItems
                   .filter((item) => !item.adminOnly || isAdmin)
@@ -92,7 +87,8 @@ export function Sidebar({ session }: SidebarProps) {
                     />
                   ))}
               </div>
-            )}
+              </div>
+            </div>
           </div>
         )}
       </nav>

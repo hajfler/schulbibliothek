@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "./sidebar";
 import { MobileBottomNav } from "./mobile-bottom-nav";
 import { ToastProvider } from "@/components/ui/toast";
+import { MotionProvider } from "@/components/ui/motion-provider";
 
 export async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -23,7 +24,7 @@ export async function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-8 pb-24 md:pb-8">
-            {children}
+            <MotionProvider>{children}</MotionProvider>
           </div>
         </main>
 

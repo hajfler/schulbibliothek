@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatDate, getDaysUntilDue } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, BookMarked, AlertCircle, CheckCircle, Clock } from "lucide-react";
+import { BookOpen, BookMarked, AlertCircle, CheckCircle, Clock, Bell } from "lucide-react";
 import Link from "next/link";
 
 export default async function DashboardPage() {
@@ -56,6 +56,27 @@ export default async function DashboardPage() {
           Willkommen in der Bibliothek
         </p>
       </div>
+
+      {/* Überfällige Ausleihen: Hinweisbanner mit Aufmerksamkeits-Puls */}
+      {overdueCount > 0 && (
+        <Link
+          href="/my-loans"
+          data-motion="alert"
+          className="block rounded-2xl bg-[#FFF0F0] border border-[#FFAAAA] px-5 py-4 hover:bg-[#FFE5E5] transition-colors"
+        >
+          <div className="flex items-start gap-3">
+            <Bell size={20} className="text-[#CC0000] flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-[15px] font-semibold text-[#CC0000]">
+                {overdueCount === 1 ? "Eine Ausleihe ist überfällig" : `${overdueCount} Ausleihen sind überfällig`}
+              </p>
+              <p className="text-[13px] text-[#A10000] mt-0.5">
+                Bitte die Bücher zurückbringen oder verlängern. Zur Übersicht «Meine Ausleihen».
+              </p>
+            </div>
+          </div>
+        </Link>
+      )}
 
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
