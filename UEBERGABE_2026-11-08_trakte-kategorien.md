@@ -66,3 +66,22 @@ daher kein Laufzeittest.
   Richard per `gh secret set` gesetzt.
 - Graph-Berechtigung gehört auf App «Bibliothek» (ffdf4296-c516-4fb0-a215-ab0b1bfc44b2),
   nicht auf «bibliothek.schule-dietlikon.ch» (42133daf…). Login-URL zeigt die Client-ID.
+
+## Abschluss 08.11.2026 ca. 09:15 – produktiv eingerichtet
+- Deploy: Coolify auf der Webserver-VM der Schule (webserver.schule-dietlikon.ch,
+  App nwwkw4s0og8ks448s444oo4k, Build aus GitHub main per Dockerfile), Redeploy manuell.
+  GitHub-Action baut das Image, der Webhook-Schritt scheitert an leeren Secrets
+  (über das !-Präfix gesetzt). Offen: Secrets in Terminal.app neu setzen.
+- Fixes nach dem Live-Test: Mitglieder ohne Adresse überspringen, Gruppen ohne $orderby
+  laden und lokal filtern, trustHost in Edge-Auth-Config (Commits baa2475, 157db62).
+- Entra-App «Bibliothek» (ffdf4296-…): GroupMember.Read.All + User.ReadBasic.All mit
+  Admin-Einwilligung. Die App cached das Graph-Token 1 h → nach neuer Berechtigung
+  Container neu starten.
+- Eingerichtet: «Schulhaus Dorf» → «Schulhaus Dorf Trakt 1» (4 bestehende Bücher), neu
+  Trakt 2 und 3; Kategoriensets Trakt 2 (12 Haupt/39 Unter) und Trakt 3 (9) geladen.
+- Import: Lehrperson Dorf → Trakt 1–3 (43 neu, 3 vorhanden), Lehrperson Fadacher →
+  Fadacher (39 neu, 3 ergänzt), Lehrperson Sek Hueenerweid → Hüenerweid (34 neu),
+  Personengruppe Zivi Dorf → Trakt 1–3 (2 neu, darunter Elias Reich).
+- Elias Reich: Rolle Bibliothekar, aktives Schulhaus Trakt 1.
+- Offen: Seraina teilt die 4 Bücher in Trakt 1 zu (Sammel-Verschieben) und vergibt
+  Kategorien; Trakt 1 hat kein Standard-Kategorienset.
