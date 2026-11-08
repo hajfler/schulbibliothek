@@ -92,3 +92,16 @@ daher kein Laufzeittest.
 - Fix e08970a: jwt-Callback liest Rolle und aktives Schulhaus bei jeder Anfrage aus
   der DB. Rollenänderungen greifen damit ebenfalls sofort, kein Neu-Login nötig.
 - Per Redeploy in Coolify ausgerollt (Container 20261108T092052).
+
+## Nachtrag 08.11.2026 10:15 – Bewegungssystem und Benutzerfilter
+- Bewegungssystem des LMI übernommen (Commit 22f2720): Abschnitt «Bewegung» in
+  globals.css (Kurven --ease/--brems/--spring, Einrollen rein in CSS, Hover, Klick,
+  Aufklappen, Modal, Toast, Seitenwechsel, Warnbanner), MotionProvider in
+  app-layout.tsx (Zurückhalten ausserhalb des Bilds, Parallax). Buchkarten per
+  data-roll als Ganzes, Dashboard-Banner bei überfälligen Ausleihen.
+- Benutzerverwaltung (Commit c7413ba): Filter nach Rolle und Schulhaus
+  (Mitgliedschaft), aktive Filter im Untertitel; Bibliothekare ohne Schulhaus-Filter.
+- Deploy per Redeploy in Coolify (Container 20261108T101020). Direkt nach dem
+  Rolling-Update einmal Client-Fehler/ungestylte Seite (Chunk-Wechsel), nach
+  Reload sauber. Sichtkontrolle: Einrollen gestaffelt, Verwaltung klappt weich,
+  Rollenfilter zeigt 4 Bibliothekare.
