@@ -36,11 +36,13 @@ export default auth(function middleware(req) {
     }
   }
 
-  // Public routes — no session required.
+  // Public routes — no session required. Statische Dateien aus /public (Logos,
+  // Icons, Manifest) müssen auch auf der Login-Seite ohne Sitzung geladen werden.
   if (
     pathname.startsWith("/login") ||
     pathname.startsWith("/api/auth") ||
-    pathname === "/api/health"
+    pathname === "/api/health" ||
+    /\.(svg|png|jpg|jpeg|gif|webp|ico|txt|xml|webmanifest|woff2?)$/i.test(pathname)
   ) {
     return NextResponse.next();
   }
