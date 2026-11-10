@@ -8,15 +8,26 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { schoolId } = await req.json();
+  const body = await req.json().catch(() => null);
+  const schoolId = body?.schoolId;
+  if (typeof schoolId !== "string" || !schoolId) {
+    return NextResponse.json({ error: "schoolId required" }, { status: 400 });
+  }
 
-  // Verify user is a member of that school
-  const membership = await prisma.userSchool.findUnique({
-    where: { userId_schoolId: { userId: session.user.id, schoolId } },
-  });
+  const school = await prisma.school.findUnique({ where: { id: schoolId }, select: { id: true } });
+  if (!school) {
+    return NextResponse.json({ error: "School not found" }, { status: 404 });
+  }
 
-  if (!membership) {
-    return NextResponse.json({ error: "Not a member of this school" }, { status: 403 });
+  // Admins sehen im Umschalter alle Schulhäuser und dürfen in jedes wechseln,
+  // alle anderen nur in Schulhäuser, denen sie zugeteilt sind.
+  if (session.user.role !== "ADMIN") {
+    const membership = await prisma.userSchool.findUnique({
+      where: { userId_schoolId: { userId: session.user.id, schoolId } },
+    });
+    if (!membership) {
+      return NextResponse.json({ error: "Not a member of this school" }, { status: 403 });
+    }
   }
 
   await prisma.user.update({
