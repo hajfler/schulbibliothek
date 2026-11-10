@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { Sidebar } from "./sidebar";
 import { MobileBottomNav } from "./mobile-bottom-nav";
 import { ToastProvider } from "@/components/ui/toast";
+import { HoverGlide } from "@/components/ui/hover-glide";
 import { MotionProvider } from "@/components/ui/motion-provider";
 
 export async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -22,6 +23,7 @@ export async function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <ToastProvider>
+      <HoverGlide />
       <div className="flex h-screen bg-[var(--background)]">
         {/* Desktop sidebar */}
         <div className="hidden md:flex">

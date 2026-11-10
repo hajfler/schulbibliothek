@@ -330,6 +330,102 @@ tbody tr,
   rotate: 180deg;
 }
 
+/* ── Register in der Seitenleiste ────────────────────────────────── */
+
+/* Karteireiter: der gewählte liegt vorn und geht ohne Linie in die Fläche
+   darunter über, die anderen stehen etwas zurück. */
+.sidebar-tab {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-bottom: 0;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 10px 10px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--foreground-tertiary);
+  background: var(--surface-secondary);
+  transition:
+    color var(--motion-fast) var(--ease),
+    background-color var(--motion-fast) var(--ease),
+    padding 320ms var(--brems);
+}
+.sidebar-tab:hover {
+  color: var(--foreground-secondary);
+}
+/* Nur der gewählte Reiter überdeckt die Trennlinie; die anderen enden darauf. */
+.sidebar-tab[data-selected="true"] {
+  margin-bottom: -1px;
+  padding: 8px 8px 9px;
+  color: var(--foreground);
+  background: var(--surface);
+  border-color: var(--separator);
+}
+.sidebar-tab:focus-visible {
+  outline: 2px solid #007AFF;
+  outline-offset: -2px;
+}
+
+/* Inhalt rollt beim Registerwechsel kurz ein und bremst am Ende ab */
+@keyframes sidebar-tab-in {
+  from { opacity: 0; translate: 0 8px; }
+  to   { opacity: 1; translate: 0 0; }
+}
+.sidebar-tab-panel {
+  animation: sidebar-tab-in 360ms var(--brems);
+}
+
+/* ── Gleitende Mouseover-Hervorhebung ────────────────────────────── */
+
+/* Eine einzige Fläche folgt dem Mauszeiger; Lage und Grösse rechnet
+   hover-glide.tsx mit einer gedämpften Feder. Hier nur Farbe, Ein- und
+   Ausblenden und das Nachgeben beim Klick. */
+.hover-glide {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0;
+  background: rgba(0, 0, 0, 0.055);
+  will-change: transform, width, height;
+  transition:
+    opacity 220ms var(--ease),
+    border-radius 240ms var(--brems),
+    background-color 160ms var(--ease);
+}
+.dark .hover-glide {
+  background: rgba(255, 255, 255, 0.085);
+}
+.hover-glide[data-show="true"] {
+  opacity: 1;
+  transition:
+    opacity 120ms var(--ease),
+    border-radius 240ms var(--brems),
+    background-color 160ms var(--ease);
+}
+.hover-glide[data-press="true"] {
+  background: rgba(0, 0, 0, 0.1);
+}
+.dark .hover-glide[data-press="true"] {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Solange die gleitende Fläche aktiv ist, entfällt der starre Farbwechsel
+   der neutralen Mouseover — sonst lägen zwei Hervorhebungen übereinander.
+   Elemente mit eigener Grundfläche (bg-…) behalten ihren Wechsel. */
+html[data-hover-glide] :is(
+  .hover\:bg-\[var\(--surface-secondary\)\],
+  .hover\:bg-\[\#F2F2F7\],
+  .hover\:bg-\[\#F9F9FB\]
+):hover:not([class*=" bg-"]):not([class^="bg-"]),
+html[data-hover-glide] tbody tr:hover,
+html[data-hover-glide].dark tbody tr:hover {
+  background-color: transparent;
+}
+
 /* ── Modale Fenster ──────────────────────────────────────────────── */
 
 @keyframes modal-in {

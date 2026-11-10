@@ -4,7 +4,7 @@
  * APP_VERSION und die Version in package.json anpassen.
  */
 
-export const APP_VERSION = "1.1.0";
+export const APP_VERSION = "1.2.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -14,6 +14,25 @@ export interface ChangelogEntry {
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.2.0",
+    date: "10. November 2026",
+    highlight: "Navigation mit Registern und eine Hervorhebung, die dem Mauszeiger mit Schwung folgt.",
+    changes: [
+      {
+        title: "Register in der Navigation",
+        text: "Die Seitenleiste ist in die Register Ausleihe, Verwaltung und Konto gegliedert. Das Register folgt der geöffneten Seite; Erscheinungsbild, Abmelden und Version liegen unter Konto.",
+      },
+      {
+        title: "Gleitende Mouseover",
+        text: "Überall in der Anwendung folgt eine Fläche dem Mauszeiger über Einträge, Schaltflächen und Tabellenzeilen. Sie federt beim Ankommen leicht nach, statt nur die Farbe zu wechseln.",
+      },
+      {
+        title: "Schulhaus wechseln",
+        text: "Admins können über den Umschalter in jedes Schulhaus wechseln, auch wenn sie dort nicht als Mitglied eingetragen sind.",
+      },
+    ],
+  },
   {
     version: "1.1.0",
     date: "8. November 2026",
